@@ -1,54 +1,84 @@
+
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import type { UserRole } from '@/lib/types';
 
 const PROTECTED_ROUTES_FARMER = ['/farmer/dashboard'];
-const PROTECTED_ROUTES_CUSTOMER = ['/customer/dashboard', '/customer/cart', '/customer/checkout', '/customer/product'];
-const AUTH_ROUTES = ['/login', '/register']; // Routes for unauthenticated users
+const PROTECTED_ROUTES_CUSTOMER = [
+  '/customer/dashboard', 
+  '/customer/cart', 
+  '/customer/checkout', 
+  '/customer/product' // Assuming product detail pages like /customer/product/* are protected
+];
+
+interface UserCookieData {
+  role?: UserRole;
+  // Add other fields from your User type if they are in the cookie and needed by middleware
+}
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  
-  // This is a VERY simplified mock auth check. 
-  // In a real app, you'd verify a JWT or session cookie.
-  const isAuthenticated = request.cookies.has('farmLinkUser');
   const userCookie = request.cookies.get('farmLinkUser');
-  let userRole: string | undefined;
 
-  if (userCookie) {
+  let userRole: UserRole | undefined;
+  let isAuthenticated = false;
+
+  if (userCookie && userCookie.value) {
     try {
-      const userData = JSON.parse(userCookie.value);
-      userRole = userData.role;
+      const parsedData = JSON.parse(userCookie.value) as unknown;
+      if (
+        typeof parsedData === 'object' &&
+        parsedData !== null &&
+        'role' in parsedData &&
+        (parsedData.role === 'farmer' || parsedData.role === 'customer')
+      ) {
+        userRole = parsedData.role as UserRole;
+        isAuthenticated = true;
+      } else {
+        console.warn("User cookie is invalid or missing a valid role. Path:", pathname);
+        // To aggressively clear an invalid cookie, you might do:
+        // const response = NextResponse.rewrite(request.nextUrl); // or NextResponse.next() if not redirecting
+        // response.cookies.delete('farmLinkUser', { path: '/' });
+        // return response; 
+        // For now, we'll just treat as unauthenticated.
+      }
     } catch (e) {
-      // Invalid cookie
+      console.error("Failed to parse user cookie. Path:", pathname, e);
+      // Similarly, could clear cookie here.
     }
   }
 
   const isFarmerRoute = PROTECTED_ROUTES_FARMER.some(route => pathname.startsWith(route));
+  // For customer product routes like /customer/product/some-id, ensure startsWith check is appropriate
   const isCustomerRoute = PROTECTED_ROUTES_CUSTOMER.some(route => pathname.startsWith(route));
-  const isAuthRoute = AUTH_ROUTES.some(route => pathname.startsWith(route) || pathname === '/');
 
-
-  if (isAuthenticated) {
-    // If user is authenticated and tries to access login/register or landing page, redirect to their dashboard
-    if (isAuthRoute && !pathname.startsWith('/login') && !pathname.startsWith('/register') && pathname !== '/') {
-       // Allow if it's login/register pages of the other role
-    } else if ((pathname === '/' || pathname.startsWith('/login') || pathname.startsWith('/register')) && userRole) {
-        return NextResponse.redirect(new URL(userRole === 'farmer' ? '/farmer/dashboard' : '/customer/dashboard', request.url));
+  if (isAuthenticated && userRole) {
+    // If authenticated, redirect from landing, login, or register pages to their respective dashboard
+    if (pathname === '/' || pathname.startsWith('/login/') || pathname.startsWith('/register/')) {
+      const dashboardUrl = userRole === 'farmer' ? '/farmer/dashboard' : '/customer/dashboard';
+      return NextResponse.redirect(new URL(dashboardUrl, request.url));
     }
-    
-    // If user is authenticated but wrong role for route
+
+    // If authenticated but trying to access a route for the wrong role
     if (isFarmerRoute && userRole !== 'farmer') {
+      // A customer trying to access a farmer route, redirect to customer dashboard
       return NextResponse.redirect(new URL('/customer/dashboard', request.url));
     }
     if (isCustomerRoute && userRole !== 'customer') {
+      // A farmer trying to access a customer route, redirect to farmer dashboard
       return NextResponse.redirect(new URL('/farmer/dashboard', request.url));
     }
   } else {
-    // If user is not authenticated and tries to access protected route
+    // Not authenticated
     if (isFarmerRoute || isCustomerRoute) {
-      // Store the intended URL to redirect after login
-      const loginUrl = new URL(pathname.includes('farmer') ? '/login/farmer' : '/login/customer', request.url);
-      loginUrl.searchParams.set('redirect', pathname);
+      // For protected routes, redirect to the appropriate login page
+      let loginBase = '/login/customer'; // Default to customer login
+      if (isFarmerRoute) {
+          loginBase = '/login/farmer';
+      }
+      
+      const loginUrl = new URL(loginBase, request.url);
+      loginUrl.searchParams.set('redirect', pathname); // Store intended URL
       return NextResponse.redirect(loginUrl);
     }
   }

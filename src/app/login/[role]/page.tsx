@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
@@ -8,7 +9,7 @@ import { LoginForm } from "@/components/auth/LoginForm";
 import { useEffect } from "react";
 import Link from "next/link";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { APP_NAME }_ from "@/lib/constants";
+import { APP_NAME } from "@/lib/constants"; // Fixed typo here
 
 export default function LoginPage() {
   const params = useParams();
@@ -48,7 +49,7 @@ export default function LoginPage() {
             {translate('login', 'Login')} {translate('asA', 'as a')} {role === 'farmer' ? translate('farmer', 'Farmer') : translate('customer', 'Customer')}
           </CardTitle>
           <CardDescription>
-            {translate('loginToAccess', 'Login to access your FarmLink account.')}
+            {translate('loginToAccess', `Login to access your ${APP_NAME} account.`)}
           </CardDescription>
         </CardHeader>
         <CardContent>
