@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { PlusCircle, ListOrdered, BarChart2, DollarSign } from "lucide-react";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { PlusCircle, ListOrdered, BarChart2, DollarSign, Edit } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProducts } from "@/contexts/ProductContext";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -75,7 +75,7 @@ export default function FarmerDashboardPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {farmerProducts.map(product => (
-              <Card key={product.id} className="overflow-hidden">
+              <Card key={product.id} className="overflow-hidden flex flex-col">
                  <div className="relative h-48 w-full">
                     <Image 
                         src={product.imageUrl || "https://placehold.co/600x400.png"} 
@@ -85,16 +85,22 @@ export default function FarmerDashboardPage() {
                         data-ai-hint={`${product.category} produce`}
                     />
                  </div>
-                <CardHeader>
+                <CardHeader className="pb-2">
                   <CardTitle>{product.name}</CardTitle>
                   <CardDescription>{product.category}</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-2">
+                <CardContent className="space-y-2 flex-grow">
                   <p><span className="font-semibold">{translate('price', 'Price')}:</span> ${product.price.toFixed(2)} / {product.unit}</p>
                   <p><span className="font-semibold">{translate('quantity', 'Quantity')}:</span> {product.quantity} {product.unit}</p>
                   <p><span className="font-semibold">{translate('location', 'Location')}:</span> {product.location}</p>
-                  {/* Add Edit/Delete buttons later */}
                 </CardContent>
+                <CardFooter className="pt-4 mt-auto">
+                  <Button variant="outline" size="sm" asChild className="w-full">
+                    <Link href={`/farmer/dashboard/edit-product/${product.id}`}>
+                      <Edit className="mr-2 h-4 w-4" /> {translate('editProductButton', 'Edit Product')}
+                    </Link>
+                  </Button>
+                </CardFooter>
               </Card>
             ))}
           </div>

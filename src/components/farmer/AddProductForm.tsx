@@ -21,7 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { Product } from "@/lib/types";
-import { Loader2 } from "lucide-react";
+import { Loader2, Pencil } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 const productFormSchema = z.object({
@@ -43,15 +43,19 @@ const units = ["kg", "gram", "litre", "ml", "piece", "dozen", "bunch", "pack"];
 
 interface AddProductFormProps {
   initialData?: Partial<Product> | null;
+  productToEdit?: Product | null;
   onClearInitialData?: () => void;
+  onProductUpdated?: () => void; 
 }
 
-export function AddProductForm({ initialData, onClearInitialData }: AddProductFormProps) {
-  const { addProduct } = useProducts();
+export function AddProductForm({ initialData, productToEdit, onClearInitialData, onProductUpdated }: AddProductFormProps) {
+  const { addProduct, updateProduct: contextUpdateProduct } = useProducts();
   const { toast } = useToast();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const { translate } = useLanguage();
+
+  const isEditMode = !!productToEdit;
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productFormSchema),
@@ -64,13 +68,24 @@ export function AddProductForm({ initialData, onClearInitialData }: AddProductFo
       category: "",
       location: "",
       imageUrl: "",
-      ...initialData, // Apply initial data from voice upload if available
+      ...(isEditMode && productToEdit ? productToEdit : initialData),
     },
   });
   
   useEffect(() => {
-    if (initialData) {
+    if (isEditMode && productToEdit) {
       form.reset({
+        name: productToEdit.name || "",
+        description: productToEdit.description || "",
+        price: productToEdit.price || 0,
+        quantity: productToEdit.quantity || 1,
+        unit: productToEdit.unit || "kg",
+        category: productToEdit.category || "",
+        location: productToEdit.location || "",
+        imageUrl: productToEdit.imageUrl || "",
+      });
+    } else if (!isEditMode && initialData) { // Only apply initialData if not in edit mode
+       form.reset({
         name: initialData.name || "",
         description: initialData.description || "",
         price: initialData.price || 0,
@@ -81,24 +96,44 @@ export function AddProductForm({ initialData, onClearInitialData }: AddProductFo
         imageUrl: initialData.imageUrl || "",
       });
     }
-  }, [initialData, form]);
+  }, [initialData, productToEdit, form, isEditMode]);
 
 
   async function onSubmit(data: ProductFormValues) {
     setIsLoading(true);
     try {
-      addProduct({ ...data, currency: "USD" }); // Assuming USD for now
-      toast({
-        title: translate('productAddedSuccessTitle', "Product Added!"),
-        description: translate('productAddedSuccessDesc', `${data.name} has been successfully listed.`),
-      });
-      form.reset();
-      if (onClearInitialData) onClearInitialData();
-      router.push("/farmer/dashboard");
+      if (isEditMode && productToEdit) {
+        contextUpdateProduct({ 
+            ...productToEdit, 
+            ...data, 
+            imageUrl: data.imageUrl || productToEdit.imageUrl || `https://placehold.co/600x400.png?text=${encodeURIComponent(data.name)}` 
+        });
+        toast({
+          title: translate('productUpdatedSuccessTitle', "Product Updated!"),
+          description: translate('productUpdatedSuccessDesc', `${data.name} has been successfully updated.`),
+        });
+        if (onProductUpdated) onProductUpdated(); else router.push("/farmer/dashboard");
+
+      } else {
+        addProduct({ ...data, currency: "USD" }); 
+        toast({
+          title: translate('productAddedSuccessTitle', "Product Added!"),
+          description: translate('productAddedSuccessDesc', `${data.name} has been successfully listed.`),
+        });
+        form.reset({ // Reset to default values for new product entry
+            name: "", description: "", price: 0, quantity: 1, unit: "kg", category: "", location: "", imageUrl: ""
+        });
+        if (onClearInitialData) onClearInitialData();
+        // Don't redirect here if it's from voice upload, let parent handle tab switch.
+        // Only redirect if it's purely form submission for a new product without initialData.
+        if (!initialData) {
+          router.push("/farmer/dashboard");
+        }
+      }
     } catch (error) {
       toast({
-        title: translate('productAddErrorTitle', "Error"),
-        description: translate('productAddErrorDesc', "Failed to add product. Please try again."),
+        title: translate(isEditMode ? 'productUpdateErrorTitle' : 'productAddErrorTitle', "Error"),
+        description: translate(isEditMode ? 'productUpdateErrorDesc' : 'productAddErrorDesc', "Failed to process product. Please try again."),
         variant: "destructive",
       });
     } finally {
@@ -170,7 +205,7 @@ export function AddProductForm({ initialData, onClearInitialData }: AddProductFo
             render={({ field }) => (
                 <FormItem>
                 <FormLabel>{translate('unit', 'Unit')}</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value || undefined}>
                     <FormControl>
                     <SelectTrigger>
                         <SelectValue placeholder={translate('selectUnit', "Select unit")} />
@@ -192,7 +227,7 @@ export function AddProductForm({ initialData, onClearInitialData }: AddProductFo
           render={({ field }) => (
             <FormItem>
               <FormLabel>{translate('category', 'Category')}</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value || undefined}>
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder={translate('selectCategory', "Select a category")} />
@@ -238,7 +273,13 @@ export function AddProductForm({ initialData, onClearInitialData }: AddProductFo
 
         <Button type="submit" className="w-full" disabled={isLoading}>
            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {initialData ? translate('confirmAndSave', 'Confirm and Save') : translate('addProductButton', 'Add Product')}
+           {isEditMode ? (
+              <>
+                <Pencil className="mr-2 h-4 w-4" /> {translate('updateProductButton', 'Update Product')}
+              </>
+            ) : (
+              initialData ? translate('confirmAndSave', 'Confirm and Save Product Details') : translate('addProductButton', 'Add Product')
+            )}
         </Button>
       </form>
     </Form>

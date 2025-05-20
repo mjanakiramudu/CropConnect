@@ -68,6 +68,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem("farmLinkSelectedRole", role);
     setCookie("farmLinkUser", userString, 7); // Set cookie for middleware
 
+    router.refresh(); // Refresh server-side data, re-run middleware
+
     if (role === "farmer") {
       router.push("/farmer/dashboard");
     } else {
@@ -83,6 +85,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     localStorage.removeItem("farmLinkSelectedRole");
     eraseCookie("farmLinkUser"); // Clear cookie for middleware
     
+    router.refresh(); // Refresh server-side data, re-run middleware
     router.push("/");
   };
 
