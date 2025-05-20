@@ -43,12 +43,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       try {
         const storedUser: User = JSON.parse(storedUserString);
         setUser(storedUser);
-        // Ensure cookie is also set if local storage has user, for middleware
-        setCookie("farmLinkUser", storedUserString, 7);
+        setCookie("farmLinkUser", storedUserString, 7); // Ensure cookie is set if user in localStorage
       } catch (e) {
         console.error("Failed to parse stored user from localStorage", e);
         localStorage.removeItem("farmLinkUser");
-        eraseCookie("farmLinkUser"); // Clear potentially corrupted cookie
+        eraseCookie("farmLinkUser"); 
       }
     }
     const storedRole = localStorage.getItem("farmLinkSelectedRole") as UserRole | null;
@@ -61,20 +60,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const mockUser: User = { id: Date.now().toString(), email, role, name: name || `${role.charAt(0).toUpperCase() + role.slice(1)} User` };
     const userString = JSON.stringify(mockUser);
     
-    setUser(mockUser);
-    setSelectedRoleState(role);
-    
+    // Set cookie and localStorage first
     localStorage.setItem("farmLinkUser", userString);
     localStorage.setItem("farmLinkSelectedRole", role);
-    setCookie("farmLinkUser", userString, 7); // Set cookie for middleware
+    setCookie("farmLinkUser", userString, 7); 
 
-    router.refresh(); // Refresh server-side data, re-run middleware
+    // Then update React state. This will trigger useEffects in components consuming this context.
+    setUser(mockUser);
+    setSelectedRoleState(role);
 
-    if (role === "farmer") {
-      router.push("/farmer/dashboard");
-    } else {
-      router.push("/customer/dashboard");
-    }
+    // Intentionally removed router.push and router.refresh from here.
+    // The redirection will now be handled by useEffect in LoginPage or RegisterPage
+    // which listens for changes in 'isAuthenticated' and 'user'.
   };
 
   const logout = () => {
@@ -83,10 +80,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     localStorage.removeItem("farmLinkUser");
     localStorage.removeItem("farmLinkSelectedRole");
-    eraseCookie("farmLinkUser"); // Clear cookie for middleware
+    eraseCookie("farmLinkUser"); 
     
-    router.refresh(); // Refresh server-side data, re-run middleware
-    router.push("/");
+    router.push("/"); // Navigate to home
+    router.refresh(); // Then refresh to ensure server state/middleware syncs
   };
 
   const setSelectedRole = (role: UserRole | null) => {
