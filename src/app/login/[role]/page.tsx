@@ -9,7 +9,8 @@ import { LoginForm } from "@/components/auth/LoginForm";
 import { useEffect } from "react";
 import Link from "next/link";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { APP_NAME } from "@/lib/constants"; // Fixed typo here
+import { APP_NAME } from "@/lib/constants";
+import { Button } from "@/components/ui/button"; // Added import
 
 export default function LoginPage() {
   const params = useParams();
@@ -70,3 +71,4 @@ export default function LoginPage() {
     </div>
   );
 }
+
