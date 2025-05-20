@@ -1,3 +1,4 @@
+
 export type UserRole = "farmer" | "customer";
 
 export interface User {
@@ -5,6 +6,8 @@ export interface User {
   email: string;
   role: UserRole;
   name?: string;
+  // For simplicity, password is not stored/checked securely in this mock setup
+  // In a real app, never store plain text passwords.
 }
 
 export interface Product {
@@ -24,7 +27,7 @@ export interface Product {
 }
 
 export interface CartItem extends Product {
-  cartQuantity: number;
+  cartQuantity: number; // Quantity of this product in the cart
 }
 
 export interface Order {
@@ -43,4 +46,20 @@ export interface VoiceUploadResult {
   location: string;
   price: number;
   unit: string;
+}
+
+export interface SaleNotificationItem {
+  productName: string;
+  quantity: number;
+  pricePerUnit: number;
+}
+
+export interface SaleNotification {
+  id: string;
+  orderId: string; // Could be a mock order ID
+  customerName: string; // Name of the customer who made the purchase
+  items: SaleNotificationItem[];
+  totalAmount: number;
+  date: string; // ISO date string
+  read: boolean;
 }

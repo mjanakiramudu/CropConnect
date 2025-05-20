@@ -1,5 +1,7 @@
+
 "use client";
 import { ProductProvider } from "@/contexts/ProductContext";
+import { CartProvider } from "@/contexts/CartContext"; // Import CartProvider
 import React from "react";
 
 export default function CustomerLayout({
@@ -7,10 +9,11 @@ export default function CustomerLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Add customer-specific navigation here if needed
   return (
     <ProductProvider>
-      {children}
+      <CartProvider> {/* Wrap with CartProvider */}
+        {children}
+      </CartProvider>
     </ProductProvider>
   );
 }

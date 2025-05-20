@@ -1,23 +1,65 @@
+
 "use client";
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { PlusCircle, ListOrdered, BarChart2, DollarSign, Edit } from "lucide-react";
+import { PlusCircle, ListOrdered, BarChart2, DollarSign, Edit, Bell, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProducts } from "@/contexts/ProductContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import Image from "next/image";
+import { useEffect, useState } from "react";
+import type { SaleNotification, SaleNotificationItem } from "@/lib/types";
+import { Badge } from "@/components/ui/badge";
 
 export default function FarmerDashboardPage() {
   const { user } = useAuth();
   const { farmerProducts } = useProducts();
   const { translate } = useLanguage();
+  const [notifications, setNotifications] = useState<SaleNotification[]>([]);
+  const [showAllNotifications, setShowAllNotifications] = useState(false);
+
+  useEffect(() => {
+    if (user && user.role === 'farmer') {
+      const farmerNotificationStoreKey = `farmLinkFarmerNotifications_${user.id}`;
+      const storedNotificationsString = localStorage.getItem(farmerNotificationStoreKey);
+      if (storedNotificationsString) {
+        try {
+          const parsedNotifications: SaleNotification[] = JSON.parse(storedNotificationsString);
+          setNotifications(parsedNotifications);
+        } catch (e) {
+          console.error("Error parsing farmer notifications", e);
+        }
+      }
+    }
+  }, [user]);
+
+  const markNotificationAsRead = (notificationId: string) => {
+    const updatedNotifications = notifications.map(n => 
+      n.id === notificationId ? { ...n, read: true } : n
+    );
+    setNotifications(updatedNotifications);
+    if (user) {
+      localStorage.setItem(`farmLinkFarmerNotifications_${user.id}`, JSON.stringify(updatedNotifications));
+    }
+  };
+  
+  const markAllAsRead = () => {
+    const updatedNotifications = notifications.map(n => ({ ...n, read: true }));
+    setNotifications(updatedNotifications);
+     if (user) {
+      localStorage.setItem(`farmLinkFarmerNotifications_${user.id}`, JSON.stringify(updatedNotifications));
+    }
+  };
 
   const totalProducts = farmerProducts.length;
-  const totalQuantity = farmerProducts.reduce((sum, p) => sum + p.quantity, 0);
-  // Mock sales data
-  const totalRevenue = farmerProducts.reduce((sum, p) => sum + (p.price * (p.quantity / 2)), 0); // Assuming half sold
+  const totalInventoryQuantity = farmerProducts.reduce((sum, p) => sum + p.quantity, 0);
+  // Mock sales data - sum of totalAmount from read notifications
+  const totalRevenue = notifications.filter(n => n.read).reduce((sum, n) => sum + n.totalAmount, 0);
+  const unreadNotificationCount = notifications.filter(n => !n.read).length;
+  const displayedNotifications = showAllNotifications ? notifications : notifications.slice(0, 3);
+
 
   return (
     <div className="space-y-8">
@@ -52,21 +94,76 @@ export default function FarmerDashboardPage() {
             <BarChart2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalQuantity} {translate('units', 'units')}</div>
+            <div className="text-2xl font-bold">{totalInventoryQuantity} {translate('units', 'units')}</div>
             <p className="text-xs text-muted-foreground">{translate('acrossAllProducts', 'across all products')}</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{translate('estimatedRevenue', 'Estimated Revenue (Mock)')}</CardTitle>
+            <CardTitle className="text-sm font-medium">{translate('totalRevenue', 'Total Revenue (from Sales)')}</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">${totalRevenue.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">{translate('basedOnMockSales', 'based on mock sales data')}</p>
+            <p className="text-xs text-muted-foreground">{translate('basedOnSales', 'based on sales marked as read')}</p>
           </CardContent>
         </Card>
       </div>
+      
+      {/* Sales Notifications Section */}
+      {notifications.length > 0 && (
+        <div>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-2xl font-semibold flex items-center">
+              <Bell className="mr-3 h-6 w-6 text-primary" />
+              {translate('salesNotifications', 'Recent Sales Notifications')}
+              {unreadNotificationCount > 0 && (
+                <Badge variant="destructive" className="ml-2">{unreadNotificationCount} New</Badge>
+              )}
+            </h2>
+            {unreadNotificationCount > 0 && (
+                <Button variant="outline" size="sm" onClick={markAllAsRead}>
+                    <EyeOff className="mr-2 h-4 w-4"/> Mark all as read
+                </Button>
+            )}
+          </div>
+          <div className="space-y-4">
+            {displayedNotifications.map(notif => (
+              <Card key={notif.id} className={`shadow-md ${!notif.read ? 'border-primary border-2' : ''}`}>
+                <CardHeader>
+                  <div className="flex justify-between items-start">
+                    <CardTitle className="text-lg">
+                      {translate('saleTo', 'Sale to:')} {notif.customerName} - Order {notif.orderId.substring(0,10)}...
+                    </CardTitle>
+                    {!notif.read && (
+                      <Button variant="ghost" size="sm" onClick={() => markNotificationAsRead(notif.id)}>
+                        <Eye className="mr-2 h-4 w-4"/> Mark as Read
+                      </Button>
+                    )}
+                  </div>
+                  <CardDescription>
+                    {translate('date', 'Date:')} {new Date(notif.date).toLocaleString()} | {translate('totalAmount', 'Total:')} <span className="font-semibold text-primary">${notif.totalAmount.toFixed(2)}</span>
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="font-medium mb-1">{translate('itemsPurchased', 'Items Purchased:')}</p>
+                  <ul className="list-disc list-inside text-sm space-y-1">
+                    {notif.items.map((item, index) => (
+                      <li key={index}>{item.productName} (x{item.quantity}) - @ ${item.pricePerUnit.toFixed(2)}/{translate('unit', 'unit')}</li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            ))}
+             {notifications.length > 3 && (
+              <Button variant="link" onClick={() => setShowAllNotifications(!showAllNotifications)} className="w-full">
+                {showAllNotifications ? translate('showLessNotifs', 'Show Less Notifications') : translate('showMoreNotifs', 'Show More Notifications')}
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
+
 
       <div>
         <h2 className="text-2xl font-semibold mb-4">{translate('myProducts', 'My Products')}</h2>

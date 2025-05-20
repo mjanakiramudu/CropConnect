@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
@@ -8,14 +9,19 @@ import { Badge } from "@/components/ui/badge";
 import { ShoppingCart, ArrowLeft, MapPin, UserCircle, Package } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card"; // Removed CardHeader, CardTitle
+import { useCart } from "@/contexts/CartContext";
+import { AddToCartDialog } from "@/components/customer/AddToCartDialog";
+import { useState } from "react";
 
 export default function ProductDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { getProductById, loading } = useProducts();
   const { translate } = useLanguage();
+  const { addToCart } = useCart();
   const productId = params.id as string;
+  const [isCartDialogOpen, setIsCartDialogOpen] = useState(false);
 
   const product = getProductById(productId);
 
@@ -33,10 +39,14 @@ export default function ProductDetailPage() {
       </div>
     );
   }
+  
+  const handleAddToCart = (quantity: number) => {
+    addToCart(product, quantity);
+  };
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
-      <Button variant="outline" size="sm" asChild className="mb-6">
+      <Button variant="outline" size="sm" asChild className="mb-6 print:hidden">
         <Link href="/customer/dashboard">
           <ArrowLeft className="mr-2 h-4 w-4" /> {translate('backToProducts', 'Back to Products')}
         </Link>
@@ -44,7 +54,7 @@ export default function ProductDetailPage() {
 
       <Card className="overflow-hidden shadow-lg">
         <div className="grid md:grid-cols-2 gap-0">
-          <div className="relative w-full h-80 md:h-auto">
+          <div className="relative w-full min-h-[300px] md:min-h-[400px] h-80 md:h-auto">
             <Image
               src={product.imageUrl || "https://placehold.co/600x400.png"}
               alt={product.name}
@@ -69,18 +79,27 @@ export default function ProductDetailPage() {
                 ${product.price.toFixed(2)}
                 <span className="text-lg font-normal text-muted-foreground"> / {product.unit}</span>
               </p>
-              <p className="text-sm text-green-600 font-medium flex items-center mt-1">
+               <p className={`text-sm font-medium flex items-center mt-1 ${product.quantity > 0 ? 'text-green-600' : 'text-destructive'}`}>
                 <Package className="mr-2 h-4 w-4" />
-                {product.quantity} {product.unit} {translate('inStock', 'in stock')}
+                 {product.quantity > 0 ? `${product.quantity} ${product.unit} ${translate('inStock', 'in stock')}` : translate('outOfStock', 'Out of Stock')}
               </p>
             </div>
 
-            <Button size="lg" className="w-full" disabled> {/* Add to cart functionality later */}
-              <ShoppingCart className="mr-2 h-4 w-4" /> {translate('addToCart', 'Add to Cart')}
+            <Button size="lg" className="w-full" onClick={() => setIsCartDialogOpen(true)} disabled={product.quantity <= 0}>
+              <ShoppingCart className="mr-2 h-4 w-4" /> 
+              {product.quantity <= 0 ? translate('outOfStock', 'Out of Stock') : translate('addToCart', 'Add to Cart')}
             </Button>
           </div>
         </div>
       </Card>
+      {product && (
+        <AddToCartDialog
+            product={product}
+            onAddToCart={handleAddToCart}
+            open={isCartDialogOpen}
+            onOpenChange={setIsCartDialogOpen}
+        />
+      )}
 
        {/* Placeholder for Related Products or Farmer's Other Products */}
       <div className="mt-12">

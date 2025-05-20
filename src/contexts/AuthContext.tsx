@@ -8,10 +8,14 @@ import React, { createContext, useContext, useState, ReactNode, useEffect } from
 interface AuthContextType {
   isAuthenticated: boolean;
   user: User | null;
-  login: (email: string, role: UserRole, name?: string) => void;
+  authError: string | null;
+  isLoadingAuth: boolean;
+  login: (email: string, role: UserRole, name?: string) => Promise<boolean>; // name is for mock, password would be here
+  register: (name: string, email: string, role: UserRole) => Promise<boolean>; // password would be here
   logout: () => void;
   selectedRole: UserRole | null;
   setSelectedRole: (role: UserRole | null) => void;
+  clearAuthError: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -32,18 +36,36 @@ function eraseCookie(name: string) {
   document.cookie = name +'=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
 }
 
+const REGISTERED_USERS_KEY = "farmLinkRegisteredUsers";
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [selectedRole, setSelectedRoleState] = useState<UserRole | null>(null);
+  const [registeredUsers, setRegisteredUsers] = useState<User[]>([]);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
+    setIsLoadingAuth(true);
+    // Load registered users from localStorage
+    const storedRegisteredUsers = localStorage.getItem(REGISTERED_USERS_KEY);
+    if (storedRegisteredUsers) {
+      try {
+        setRegisteredUsers(JSON.parse(storedRegisteredUsers));
+      } catch (e) {
+        console.error("Failed to parse registered users from localStorage", e);
+        localStorage.removeItem(REGISTERED_USERS_KEY);
+      }
+    }
+
+    // Load current user and role
     const storedUserString = localStorage.getItem("farmLinkUser");
     if (storedUserString) {
       try {
         const storedUser: User = JSON.parse(storedUserString);
         setUser(storedUser);
-        setCookie("farmLinkUser", storedUserString, 7); // Ensure cookie is set if user in localStorage
+        setCookie("farmLinkUser", storedUserString, 7);
       } catch (e) {
         console.error("Failed to parse stored user from localStorage", e);
         localStorage.removeItem("farmLinkUser");
@@ -54,36 +76,76 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (storedRole) {
         setSelectedRoleState(storedRole);
     }
+    setIsLoadingAuth(false);
   }, []);
 
-  const login = (email: string, role: UserRole, name?: string) => {
-    const mockUser: User = { id: Date.now().toString(), email, role, name: name || `${role.charAt(0).toUpperCase() + role.slice(1)} User` };
-    const userString = JSON.stringify(mockUser);
+  const clearAuthError = () => setAuthError(null);
+
+  const login = async (email: string, role: UserRole): Promise<boolean> => {
+    setAuthError(null);
+    setIsLoadingAuth(true);
+    await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API delay
+
+    const foundUser = registeredUsers.find(u => u.email === email);
+
+    if (foundUser) {
+      if (foundUser.role === role) {
+        const userString = JSON.stringify(foundUser);
+        localStorage.setItem("farmLinkUser", userString);
+        localStorage.setItem("farmLinkSelectedRole", role);
+        setCookie("farmLinkUser", userString, 7); 
+        setUser(foundUser);
+        setSelectedRoleState(role);
+        setIsLoadingAuth(false);
+        return true;
+      } else {
+        setAuthError(`User found, but role is incorrect. Expected ${role}, got ${foundUser.role}.`);
+        setIsLoadingAuth(false);
+        return false;
+      }
+    } else {
+      setAuthError("User not found. Please check your email or register.");
+      setIsLoadingAuth(false);
+      return false;
+    }
+  };
+
+  const register = async (name: string, email: string, role: UserRole): Promise<boolean> => {
+    setAuthError(null);
+    setIsLoadingAuth(true);
+    await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API delay
+
+    if (registeredUsers.some(u => u.email === email)) {
+      setAuthError("Email already registered. Please login or use a different email.");
+      setIsLoadingAuth(false);
+      return false;
+    }
+
+    const newUser: User = { id: Date.now().toString(), email, role, name };
+    const updatedRegisteredUsers = [...registeredUsers, newUser];
+    localStorage.setItem(REGISTERED_USERS_KEY, JSON.stringify(updatedRegisteredUsers));
+    setRegisteredUsers(updatedRegisteredUsers);
     
-    // Set cookie and localStorage first
+    // Automatically login after registration
+    const userString = JSON.stringify(newUser);
     localStorage.setItem("farmLinkUser", userString);
     localStorage.setItem("farmLinkSelectedRole", role);
     setCookie("farmLinkUser", userString, 7); 
-
-    // Then update React state. This will trigger useEffects in components consuming this context.
-    setUser(mockUser);
+    setUser(newUser);
     setSelectedRoleState(role);
-
-    // Intentionally removed router.push and router.refresh from here.
-    // The redirection will now be handled by useEffect in LoginPage or RegisterPage
-    // which listens for changes in 'isAuthenticated' and 'user'.
+    setIsLoadingAuth(false);
+    return true;
   };
 
   const logout = () => {
     setUser(null);
     setSelectedRoleState(null);
-    
+    setAuthError(null);
     localStorage.removeItem("farmLinkUser");
     localStorage.removeItem("farmLinkSelectedRole");
     eraseCookie("farmLinkUser"); 
-    
-    router.push("/"); // Navigate to home
-    router.refresh(); // Then refresh to ensure server state/middleware syncs
+    router.push("/");
+    router.refresh();
   };
 
   const setSelectedRole = (role: UserRole | null) => {
@@ -96,7 +158,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated: !!user, user, login, logout, selectedRole, setSelectedRole }}>
+    <AuthContext.Provider value={{ 
+      isAuthenticated: !!user, 
+      user, 
+      login, 
+      register, 
+      logout, 
+      selectedRole, 
+      setSelectedRole,
+      authError,
+      isLoadingAuth,
+      clearAuthError
+    }}>
       {children}
     </AuthContext.Provider>
   );
