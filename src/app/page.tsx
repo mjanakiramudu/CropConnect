@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { RoleSelection } from '@/components/RoleSelection';
@@ -11,7 +11,7 @@ export default function LandingPage() {
   const router = useRouter();
   
   // Add a loading state to prevent flicker during auth check
-  const [isLoading, setIsLoading] = React.useState(true);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (isAuthenticated && user) {
