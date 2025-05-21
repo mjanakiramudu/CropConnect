@@ -15,6 +15,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
 import { useProducts } from "@/contexts/ProductContext";
+import { Badge } from "@/components/ui/badge"; // Added import
 
 const CUSTOMER_ORDERS_STORAGE_KEY_PREFIX = "farmLinkCustomerOrders_";
 const RATINGS_STORAGE_KEY = "farmLinkRatings";
