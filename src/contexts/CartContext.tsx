@@ -26,6 +26,10 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [loadingCart, setLoadingCart] = useState(true);
   const { toast } = useToast();
 
+  const safeToast = (options: Parameters<typeof toast>[0]) => {
+    setTimeout(() => toast(options), 0);
+  };
+
   const loadCartForUser = useCallback((userId: string | null) => {
     setLoadingCart(true);
     if (userId) {
@@ -71,15 +75,15 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   const addToCart = (product: Product, quantity: number) => {
     if (!user) {
-      toast({ title: "Please login", description: "You need to be logged in to add items to your cart.", variant: "destructive" });
+      safeToast({ title: "Please login", description: "You need to be logged in to add items to your cart.", variant: "destructive" });
       return;
     }
     if (quantity <= 0) {
-        toast({ title: "Invalid Quantity", description: "Quantity must be greater than zero.", variant: "destructive" });
+        safeToast({ title: "Invalid Quantity", description: "Quantity must be greater than zero.", variant: "destructive" });
         return;
     }
     if (quantity > product.quantity) {
-        toast({ title: "Not Enough Stock", description: `Only ${product.quantity} ${product.unit} available.`, variant: "destructive" });
+        safeToast({ title: "Not Enough Stock", description: `Only ${product.quantity} ${product.unit} available.`, variant: "destructive" });
         return;
     }
 
@@ -92,10 +96,10 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
             ? { ...item, cartQuantity: Math.min(item.cartQuantity + quantity, product.quantity) } // Ensure not exceeding available stock
             : item
         );
-        toast({ title: "Cart Updated", description: `${product.name} quantity increased.` });
+        safeToast({ title: "Cart Updated", description: `${product.name} quantity increased.` });
       } else {
         newCart = [...prevCart, { ...product, cartQuantity: quantity }];
-        toast({ title: "Item Added", description: `${quantity} ${product.unit} of ${product.name} added to cart.` });
+        safeToast({ title: "Item Added", description: `${quantity} ${product.unit} of ${product.name} added to cart.` });
       }
       saveCartForUser(user.id, newCart);
       return newCart;
@@ -107,7 +111,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     setCart(prevCart => {
       const newCart = prevCart.filter(item => item.id !== productId);
       saveCartForUser(user.id, newCart);
-      toast({ title: "Item Removed", description: "Product removed from your cart." });
+      safeToast({ title: "Item Removed", description: "Product removed from your cart." });
       return newCart;
     });
   };
@@ -118,11 +122,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     if (!productInCart) return;
 
     if (newQuantity <= 0) {
-      removeFromCart(productId);
+      removeFromCart(productId); // This already has a toast
       return;
     }
     if (newQuantity > productInCart.quantity) { // Check against original product quantity (max available)
-        toast({ title: "Not Enough Stock", description: `Only ${productInCart.quantity} ${productInCart.unit} available for ${productInCart.name}.`, variant: "destructive" });
+        safeToast({ title: "Not Enough Stock", description: `Only ${productInCart.quantity} ${productInCart.unit} available for ${productInCart.name}.`, variant: "destructive" });
         setCart(prevCart => { // Revert to max available if attempted to exceed
              const updatedCart = prevCart.map(item =>
                 item.id === productId ? { ...item, cartQuantity: productInCart.quantity } : item
@@ -138,7 +142,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         item.id === productId ? { ...item, cartQuantity: newQuantity } : item
       );
       saveCartForUser(user.id, newCart);
-      toast({ title: "Cart Updated", description: `Quantity updated for ${productInCart.name}.` });
+      safeToast({ title: "Cart Updated", description: `Quantity updated for ${productInCart.name}.` });
       return newCart;
     });
   };
@@ -147,6 +151,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     if (!user) return;
     setCart([]);
     saveCartForUser(user.id, []);
+    // Optionally add a toast here if desired:
+    // safeToast({ title: "Cart Cleared", description: "Your shopping cart has been emptied." });
   };
 
   const getCartTotal = () => {
@@ -167,3 +173,4 @@ export const useCart = () => {
   }
   return context;
 };
+

@@ -1,7 +1,6 @@
 
 "use client";
-import { ProductProvider } from "@/contexts/ProductContext";
-import { CartProvider } from "@/contexts/CartContext"; // Import CartProvider
+// Removed ProductProvider and CartProvider as they are now in RootLayout
 import React from "react";
 
 export default function CustomerLayout({
@@ -9,11 +8,5 @@ export default function CustomerLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <ProductProvider>
-      <CartProvider> {/* Wrap with CartProvider */}
-        {children}
-      </CartProvider>
-    </ProductProvider>
-  );
+  return <>{children}</>;
 }

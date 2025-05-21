@@ -7,7 +7,7 @@ import type { Product } from "@/lib/types";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ShoppingCart, Info } from "lucide-react";
+import { ShoppingCart, Info, Star } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useCart } from "@/contexts/CartContext";
 import { AddToCartDialog } from "./AddToCartDialog";
@@ -24,6 +24,20 @@ export function ProductCard({ product }: ProductCardProps) {
 
   const handleAddToCart = (quantity: number) => {
     addToCart(product, quantity);
+  };
+
+  const renderStars = (rating?: number) => {
+    const numRating = rating || 0;
+    const stars = [];
+    for (let i = 1; i <= 5; i++) {
+      stars.push(
+        <Star
+          key={i}
+          className={`h-4 w-4 ${i <= numRating ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground"}`}
+        />
+      );
+    }
+    return stars;
   };
 
   return (
@@ -50,8 +64,15 @@ export function ProductCard({ product }: ProductCardProps) {
             {translate('byFarmer', 'By:')} {product.farmerName} | {translate('fromLocation', 'From:')} {product.location}
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex-grow pb-3">
+        <CardContent className="flex-grow pb-3 space-y-2">
           <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{product.description}</p>
+          <div className="flex items-center gap-1">
+            {renderStars(product.averageRating)}
+            {product.totalRatings !== undefined && product.totalRatings > 0 && (
+              <span className="text-xs text-muted-foreground">({product.averageRating?.toFixed(1)} / {product.totalRatings} {translate('ratings', 'ratings')})</span>
+            )}
+            {(product.totalRatings === undefined || product.totalRatings === 0) && <span className="text-xs text-muted-foreground">{translate('noRatingsYet', 'No ratings yet')}</span> }
+          </div>
           <p className="text-xl font-bold text-primary">
             ${product.price.toFixed(2)} <span className="text-sm font-normal text-muted-foreground">/ {product.unit}</span>
           </p>

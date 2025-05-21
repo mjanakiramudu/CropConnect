@@ -1,5 +1,6 @@
+
 "use client";
-import { ProductProvider } from "@/contexts/ProductContext";
+// Removed ProductProvider as it's now in RootLayout
 import React from "react";
 
 export default function FarmerLayout({
@@ -8,9 +9,5 @@ export default function FarmerLayout({
   children: React.ReactNode;
 }) {
   // Add farmer-specific navigation or sidebar here if needed in the future
-  return (
-    <ProductProvider>
-        {children}
-    </ProductProvider>
-  );
+  return <>{children}</>;
 }

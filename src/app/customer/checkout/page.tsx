@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Lock, CreditCard } from "lucide-react";
+import { ArrowLeft, Lock, CreditCard, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useCart } from "@/contexts/CartContext";
@@ -13,7 +13,10 @@ import { useProducts } from "@/contexts/ProductContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
-import type { SaleNotification, SaleNotificationItem } from "@/lib/types";
+import type { SaleNotification, SaleNotificationItem, Order, OrderItem, CartItem } from "@/lib/types"; // Added Order, OrderItem
+import { useState } from "react";
+
+const CUSTOMER_ORDERS_STORAGE_KEY_PREFIX = "farmLinkCustomerOrders_";
 
 export default function CheckoutPage() {
   const { translate } = useLanguage();
@@ -22,20 +25,41 @@ export default function CheckoutPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
+  const [isProcessingOrder, setIsProcessingOrder] = useState(false);
 
   const subtotal = getCartTotal();
   const taxes = subtotal * 0.05; // Example tax
   const total = subtotal + taxes;
 
+  const safeToast = (options: Parameters<typeof toast>[0]) => {
+    setTimeout(() => toast(options), 0);
+  };
+
+  const saveOrderForCustomer = (userId: string, order: Order) => {
+    const storageKey = `${CUSTOMER_ORDERS_STORAGE_KEY_PREFIX}${userId}`;
+    const existingOrdersString = localStorage.getItem(storageKey);
+    let existingOrders: Order[] = [];
+    if (existingOrdersString) {
+      try {
+        existingOrders = JSON.parse(existingOrdersString);
+      } catch (e) {
+        console.error("Error parsing existing orders", e);
+      }
+    }
+    existingOrders.unshift(order); // Add new order to the beginning
+    localStorage.setItem(storageKey, JSON.stringify(existingOrders));
+  };
+
   const handlePlaceOrder = async () => {
     if (!user) {
-      toast({ title: "Authentication Error", description: "Please login to place an order.", variant: "destructive" });
+      safeToast({ title: "Authentication Error", description: "Please login to place an order.", variant: "destructive" });
       return;
     }
     if (cart.length === 0) {
-      toast({ title: "Empty Cart", description: "Your cart is empty.", variant: "destructive" });
+      safeToast({ title: "Empty Cart", description: "Your cart is empty.", variant: "destructive" });
       return;
     }
+    setIsProcessingOrder(true);
 
     // 1. Update product quantities
     let allQuantitiesUpdated = true;
@@ -43,7 +67,7 @@ export default function CheckoutPage() {
       const success = updateProductQuantity(item.id, -item.cartQuantity); // Decrease quantity
       if (!success) {
         allQuantitiesUpdated = false;
-        toast({
+        safeToast({
           title: "Order Error",
           description: `Could not update stock for ${item.name}. Order cancelled. Please try again.`,
           variant: "destructive",
@@ -53,23 +77,51 @@ export default function CheckoutPage() {
     }
 
     if (!allQuantitiesUpdated) {
-      // Optionally, revert any successful quantity updates if a partial failure is not desired.
-      // For simplicity, we'll proceed if at least one failed, but a real app might need a transaction.
+      setIsProcessingOrder(false);
       return;
     }
     
-    // 2. Simulate farmer notification
-    // Group notifications by farmerId
-    const notificationsByFarmer: Record<string, SaleNotification> = {};
+    const orderId = `order-${Date.now()}`;
 
+    // 2. Create Order object
+    const orderItems: OrderItem[] = cart.map((cartItem: CartItem) => ({
+      productId: cartItem.id, // Keep original product ID
+      name: cartItem.name,
+      description: cartItem.description,
+      pricePerUnit: cartItem.price, 
+      currency: cartItem.currency,
+      unit: cartItem.unit,
+      category: cartItem.category,
+      location: cartItem.location,
+      farmerId: cartItem.farmerId,
+      farmerName: cartItem.farmerName,
+      imageUrl: cartItem.imageUrl,
+      dateAdded: cartItem.dateAdded,
+      orderedQuantity: cartItem.cartQuantity,
+    }));
+
+    const newOrder: Order = {
+      id: orderId,
+      userId: user.id,
+      items: orderItems,
+      totalAmount: total,
+      status: "Delivered", // Mock: Mark as delivered immediately for rating purposes
+      createdAt: new Date().toISOString(),
+      // shippingAddress: { fullName: "Mock Name", address: "Mock Address", ... } // Capture from form
+    };
+    saveOrderForCustomer(user.id, newOrder);
+
+
+    // 3. Simulate farmer notification
+    const notificationsByFarmer: Record<string, SaleNotification> = {};
     cart.forEach(item => {
       if (!notificationsByFarmer[item.farmerId]) {
         notificationsByFarmer[item.farmerId] = {
           id: `notif-${Date.now()}-${item.farmerId}`,
-          orderId: `order-${Date.now()}`, // Mock order ID
+          orderId: orderId, 
           customerName: user.name || "A Customer",
           items: [],
-          totalAmount: 0, // This will be sum for this farmer's items in this order
+          totalAmount: 0, 
           date: new Date().toISOString(),
           read: false,
         };
@@ -91,20 +143,20 @@ export default function CheckoutPage() {
                 existingNotifications = JSON.parse(existingNotificationsString);
             } catch (e) { console.error("Error parsing farmer notifications", e); }
         }
-        existingNotifications.unshift(notificationsByFarmer[farmerId]); // Add new notification to the beginning
+        existingNotifications.unshift(notificationsByFarmer[farmerId]); 
         localStorage.setItem(farmerNotificationStoreKey, JSON.stringify(existingNotifications));
     }
 
-
-    // 3. Clear cart
+    // 4. Clear cart
     clearCart();
 
-    // 4. Show success & redirect
-    toast({
+    // 5. Show success & redirect
+    safeToast({
       title: translate('orderPlacedSuccessTitle', "Order Placed!"),
       description: translate('orderPlacedSuccessDesc', "Thank you for your purchase. Your items will be on their way soon."),
     });
-    router.push("/customer/dashboard"); // Redirect to dashboard or an order confirmation page
+    setIsProcessingOrder(false);
+    router.push("/customer/orders"); 
   };
 
   if (loadingCart) {
@@ -196,8 +248,9 @@ export default function CheckoutPage() {
           </div>
         </CardContent>
         <CardFooter>
-          <Button size="lg" className="w-full" onClick={handlePlaceOrder} disabled={cart.length === 0 || loadingCart}>
-            <CreditCard className="mr-2 h-5 w-5" /> {translate('placeOrder', `Place Order (${total.toFixed(2)})`)}
+          <Button size="lg" className="w-full" onClick={handlePlaceOrder} disabled={cart.length === 0 || loadingCart || isProcessingOrder}>
+            {isProcessingOrder ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <CreditCard className="mr-2 h-5 w-5" /> }
+            {isProcessingOrder ? translate('processingOrder', 'Processing Order...') : translate('placeOrder', `Place Order (${total.toFixed(2)})`)}
           </Button>
         </CardFooter>
       </Card>

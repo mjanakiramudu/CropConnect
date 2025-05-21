@@ -24,21 +24,40 @@ export interface Product {
   farmerName: string; // Denormalized for easier display
   imageUrl?: string;
   dateAdded: string; // ISO date string
+  averageRating?: number; // New field
+  totalRatings?: number; // New field
 }
 
 export interface CartItem extends Product {
   cartQuantity: number; // Quantity of this product in the cart
 }
 
+export interface OrderItem extends Omit<Product, 'quantity' | 'averageRating' | 'totalRatings' | 'id' > { // Product details at the time of order
+  orderedQuantity: number;
+  pricePerUnit: number; // Price at the time of order
+  productId: string; // Reference to the original product ID
+}
+
 export interface Order {
   id: string;
   userId: string;
-  items: CartItem[];
+  items: OrderItem[];
   totalAmount: number;
-  status: "pending" | "paid" | "shipped" | "delivered" | "cancelled";
+  status: "Pending" | "Processing" | "Shipped" | "Delivered" | "Cancelled";
   createdAt: string; // ISO date string
   shippingAddress?: any; // Placeholder for address object
+  // Add fields for payment details if needed
 }
+
+export interface Rating {
+  productId: string;
+  userId: string;
+  orderId: string; // Link rating to a specific purchase
+  rating: number; // 1-5
+  review?: string; // Optional text review
+  createdAt: string; // ISO date string
+}
+
 
 // For AI voice upload output
 export interface VoiceUploadResult {
@@ -56,8 +75,8 @@ export interface SaleNotificationItem {
 
 export interface SaleNotification {
   id: string;
-  orderId: string; // Could be a mock order ID
-  customerName: string; // Name of the customer who made the purchase
+  orderId: string; 
+  customerName: string; 
   items: SaleNotificationItem[];
   totalAmount: number;
   date: string; // ISO date string
