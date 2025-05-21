@@ -38,7 +38,7 @@ const prompt = ai.definePrompt({
   name: 'farmingNewsPrompt',
   input: {schema: FarmingNewsInputSchema},
   output: {schema: FarmingNewsOutputSchema},
-  prompt: `You are an agricultural news aggregator. Your task is to find and summarize recent (within the last 7-10 days if possible, otherwise most relevant) and important farming-related news.
+  prompt: `You are an agricultural news aggregator. Your task is to find and summarize the most recent (within the last 2-3 days if possible, otherwise most relevant and important) farming-related news.
 
 Region: {{{region}}}
 Language for summaries: {{{language}}}
@@ -52,14 +52,14 @@ Focus on news concerning:
 - Pest and disease outbreaks
 
 For each news item, provide:
-- A clear title.
-- A concise summary (2-3 sentences).
-- The source (if identifiable, otherwise state "General News").
+- A clear title in {{{language}}}.
+- A concise summary (2-3 sentences) in {{{language}}}.
+- The source (if identifiable, otherwise state "General News" in {{{language}}}).
 - The published date if available (try to find it, use YYYY-MM-DD format).
 
 Ensure the news is relevant to the specified region. If the region is broad (e.g., "USA"), try to find news applicable to a significant agricultural area within it or general national news.
 Prioritize factual and actionable information for farmers. Avoid sensationalism.
-Return the output in the specified language.
+Return the entire output strictly in the specified language: {{{language}}}.
 `,
 });
 
@@ -77,3 +77,4 @@ const farmingNewsFlow = ai.defineFlow(
     return output;
   }
 );
+

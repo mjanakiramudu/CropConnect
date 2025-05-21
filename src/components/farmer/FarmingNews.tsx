@@ -45,21 +45,32 @@ export function FarmingNews() {
 
   const handleReadAloud = (text: string, title: string) => {
     if (typeof window !== "undefined" && window.speechSynthesis) {
+      // If currently speaking this article, stop it
       if (speakingArticle === title && window.speechSynthesis.speaking) {
         window.speechSynthesis.cancel();
-        setSpeakingArticle(null);
+        setSpeakingArticle(null); // Clear speaking state
         return;
       }
-      setSpeakingArticle(title);
+
+      // If speaking another article, or not speaking, start this one
+      window.speechSynthesis.cancel(); // Stop any previous speech immediately
+
       const utterance = new SpeechSynthesisUtterance(title + ". " + text);
-      utterance.lang = currentLanguage.split('-')[0]; // Use base language e.g., 'en' from 'en-US'
-      utterance.onend = () => setSpeakingArticle(null);
+      // Sets the language for speech synthesis. Quality/availability of regional voices depends on the user's OS/browser.
+      utterance.lang = currentLanguage.split('-')[0]; 
+      
+      utterance.onstart = () => {
+        setSpeakingArticle(title); // Set speaking state when speech actually starts
+      };
+      utterance.onend = () => {
+        setSpeakingArticle(null); // Clear speaking state when speech ends
+      };
       utterance.onerror = (event) => {
         console.error("Speech synthesis error:", event);
         setError(translate('speechError', "Sorry, I couldn't read this aloud."));
-        setSpeakingArticle(null);
+        setSpeakingArticle(null); // Clear speaking state on error
       };
-      window.speechSynthesis.cancel(); // Cancel any previous speech
+      
       window.speechSynthesis.speak(utterance);
     } else {
       setError(translate('speechNotSupportedError', "Text-to-speech is not supported in your browser."));
@@ -119,10 +130,11 @@ export function FarmingNews() {
                     variant="outline" 
                     size="sm" 
                     onClick={() => handleReadAloud(item.summary, item.title)}
-                    disabled={speakingArticle === item.title && typeof window !== 'undefined' && window.speechSynthesis.speaking}
                   >
                     <Volume2 className="mr-2 h-4 w-4" /> 
-                    {speakingArticle === item.title && typeof window !== 'undefined' && window.speechSynthesis.speaking ? translate('stopReading', 'Stop Reading') : translate('readAloud', 'Read Aloud')}
+                    {(speakingArticle === item.title && typeof window !== 'undefined' && window.speechSynthesis.speaking) 
+                        ? translate('stopReading', 'Stop Reading') 
+                        : translate('readAloud', 'Read Aloud')}
                   </Button>
                 </CardFooter>
               </Card>
@@ -143,3 +155,4 @@ export function FarmingNews() {
     </Card>
   );
 }
+

@@ -3,7 +3,7 @@
 /**
  * @fileOverview Analyzes sales data to provide insights for farmers.
  *
- * - getSalesInsights - Generates insights and recommendations from sales data.
+ * - getSalesInsights - Generates insights and recommendations from sales data in a specified language.
  * - SalesInsightsInput - The input type for the getSalesInsights function.
  * - SalesInsightsOutput - The return type for the getSalesInsights function.
  */
@@ -24,6 +24,7 @@ const SalesInsightsInputSchema = z.object({
   salesDataJson: z.string().describe('A JSON string representing an array of sales records. Each record should include productName, quantitySold, totalRevenue, and saleDate.'),
   timePeriod: z.string().optional().describe('Optional: The time period the sales data covers (e.g., "Last 30 days", "Previous Quarter").'),
   farmerSpecificGoals: z.string().optional().describe('Optional: Any specific goals or questions the farmer has (e.g., "How to increase sales of product X?", "Is my pricing optimal?").'),
+  language: z.string().describe('The desired language for the insights (e.g., "English", "Hindi", "Telugu", "Tamil").'),
 });
 export type SalesInsightsInput = z.infer<typeof SalesInsightsInputSchema>;
 
@@ -56,6 +57,7 @@ const prompt = ai.definePrompt({
   output: {schema: SalesInsightsOutputSchema},
   prompt: `You are a highly skilled senior data analyst specializing in agricultural sales.
 A farmer has provided their sales data and needs your expert analysis.
+Respond entirely in the language: {{{language}}}.
 
 Sales Data (JSON format):
 {{{salesDataJson}}}
@@ -63,7 +65,7 @@ Sales Data (JSON format):
 {{#if timePeriod}}Time Period Covered: {{{timePeriod}}}{{/if}}
 {{#if farmerSpecificGoals}}Farmer's Goals/Questions: {{{farmerSpecificGoals}}}{{/if}}
 
-Analyze this data thoroughly and provide the following:
+Analyze this data thoroughly and provide the following in {{{language}}}:
 1.  **Overall Summary**: A brief (1-2 sentences) executive summary of the sales performance.
 2.  **Key Insights**: Identify 2-4 critical insights from the data. These could be about top-performing products, sales trends over time, customer behavior (if inferable), or underperforming items. Be specific and data-driven.
 3.  **Actionable Recommendations**: Suggest 2-3 practical and actionable steps the farmer can take based on your insights to improve sales, optimize inventory, or adjust pricing.
@@ -72,7 +74,7 @@ Analyze this data thoroughly and provide the following:
 
 Focus on clarity, conciseness, and the practical value of your analysis for the farmer.
 If the sales data is sparse or limited, acknowledge this in your analysis and provide more general advice if specific trends are hard to discern.
-Structure your response clearly with headings for each section.
+Structure your response clearly with headings for each section, in {{{language}}}.
 `,
 });
 
@@ -90,3 +92,4 @@ const salesInsightsFlow = ai.defineFlow(
     return output;
   }
 );
+

@@ -14,11 +14,12 @@ import { useAuth } from "@/contexts/AuthContext";
 
 export function WeatherAdvisor() {
   const { user } = useAuth();
+  const { language: currentLanguage, translate } = useLanguage();
   const [location, setLocation] = useState(user?.location || "");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [advice, setAdvice] = useState<WeatherAdvisorOutput | null>(null);
-  const { translate } = useLanguage();
+  
 
   const handleSubmit = async () => {
     if (!location.trim()) {
@@ -29,7 +30,7 @@ export function WeatherAdvisor() {
     setError(null);
     setAdvice(null);
 
-    const result = await fetchWeatherAdvice({ location });
+    const result = await fetchWeatherAdvice({ location, language: currentLanguage });
 
     if ("error" in result) {
       setError(result.error);
@@ -101,3 +102,4 @@ export function WeatherAdvisor() {
     </Card>
   );
 }
+

@@ -38,6 +38,9 @@ export async function fetchWeatherAdvice(input: WeatherAdvisorInput): Promise<We
     if (!input.location || input.location.trim() === "") {
       return { error: "Location cannot be empty." };
     }
+    if (!input.language || input.language.trim() === "") {
+      return { error: "Language must be specified for weather advice." };
+    }
     const result = await getWeatherAdviceFlow(input);
     return result;
   } catch (error) {
@@ -53,6 +56,9 @@ export async function fetchFarmingNews(input: FarmingNewsInput): Promise<Farming
   try {
     if (!input.region || input.region.trim() === "") {
       return { error: "Region cannot be empty for news fetching." };
+    }
+    if (!input.language || input.language.trim() === "") {
+      return { error: "Language must be specified for news fetching." };
     }
     const result = await getFarmingNewsFlow(input);
     return result;
@@ -70,6 +76,9 @@ export async function fetchPricePrediction(input: PricePredictorInput): Promise<
     if (!input.location || input.location.trim() === "" || !input.productType || input.productType.trim() === "" || !input.unit || input.unit.trim() === "") {
       return { error: "Location, Product Type, and Unit are required for price prediction." };
     }
+     if (!input.language || input.language.trim() === "") {
+      return { error: "Language must be specified for price prediction." };
+    }
     const result = await getPricePredictionFlow(input);
     return result;
   } catch (error) {
@@ -85,6 +94,9 @@ export async function fetchSalesInsights(input: SalesInsightsInput): Promise<Sal
   try {
     if (!input.salesDataJson || input.salesDataJson.trim() === "") {
       return { error: "Sales data cannot be empty." };
+    }
+     if (!input.language || input.language.trim() === "") {
+      return { error: "Language must be specified for sales insights." };
     }
     // Basic JSON validation
     try {
@@ -102,3 +114,4 @@ export async function fetchSalesInsights(input: SalesInsightsInput): Promise<Sal
     return { error: "An unknown error occurred while fetching sales insights." };
   }
 }
+

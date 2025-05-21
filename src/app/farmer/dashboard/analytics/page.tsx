@@ -39,7 +39,7 @@ interface DailySale {
 
 export default function SalesAnalyticsPage() {
   const { user } = useAuth();
-  const { translate } = useLanguage();
+  const { translate, language: currentLanguage } = useLanguage();
   const [notifications, setNotifications] = useState<SaleNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [aiInsights, setAiInsights] = useState<SalesInsightsOutput | null>(null);
@@ -127,7 +127,11 @@ export default function SalesAnalyticsPage() {
     }));
 
 
-    const result = await fetchSalesInsights({ salesDataJson: JSON.stringify(simplifiedSalesData), timePeriod: translate('allTime', "All Time") });
+    const result = await fetchSalesInsights({ 
+        salesDataJson: JSON.stringify(simplifiedSalesData), 
+        timePeriod: translate('allTime', "All Time"),
+        language: currentLanguage 
+    });
     if ("error" in result) {
       setInsightsError(result.error);
     } else {
@@ -346,3 +350,4 @@ export default function SalesAnalyticsPage() {
     </div>
   );
 }
+

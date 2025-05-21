@@ -18,6 +18,7 @@ const commonUnits = ["kg", "quintal", "tonne", "pound", "gallon", "litre", "piec
 
 export function PricePredictor() {
   const { user } = useAuth();
+  const { language: currentLanguage, translate } = useLanguage();
   const [location, setLocation] = useState(user?.location || "");
   const [productType, setProductType] = useState("");
   const [unit, setUnit] = useState("kg");
@@ -26,7 +27,7 @@ export function PricePredictor() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [prediction, setPrediction] = useState<PricePredictorOutput | null>(null);
-  const { translate } = useLanguage();
+  
 
   const handleSubmit = async () => {
     if (!location.trim() || !productType.trim() || !unit.trim()) {
@@ -41,7 +42,8 @@ export function PricePredictor() {
         location, 
         productType, 
         unit,
-        currentMarketInfo: marketInfo.trim() || undefined 
+        currentMarketInfo: marketInfo.trim() || undefined,
+        language: currentLanguage
     });
 
     if ("error" in result) {
@@ -145,3 +147,4 @@ export function PricePredictor() {
     </Card>
   );
 }
+
