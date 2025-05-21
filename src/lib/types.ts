@@ -8,6 +8,7 @@ export interface User {
   name?: string;
   // For simplicity, password is not stored/checked securely in this mock setup
   // In a real app, never store plain text passwords.
+  location?: string; // Added for farmer's default location
 }
 
 export interface Product {
@@ -24,8 +25,8 @@ export interface Product {
   farmerName: string; // Denormalized for easier display
   imageUrl?: string;
   dateAdded: string; // ISO date string
-  averageRating?: number; // New field
-  totalRatings?: number; // New field
+  averageRating?: number; 
+  totalRatings?: number; 
 }
 
 export interface CartItem extends Product {
@@ -46,15 +47,14 @@ export interface Order {
   status: "Pending" | "Processing" | "Shipped" | "Delivered" | "Cancelled";
   createdAt: string; // ISO date string
   shippingAddress?: any; // Placeholder for address object
-  // Add fields for payment details if needed
 }
 
 export interface Rating {
   productId: string;
   userId: string;
-  orderId: string; // Link rating to a specific purchase
+  orderId: string; 
   rating: number; // 1-5
-  review?: string; // Optional text review
+  review?: string; 
   createdAt: string; // ISO date string
 }
 
@@ -82,3 +82,33 @@ export interface SaleNotification {
   date: string; // ISO date string
   read: boolean;
 }
+
+// AI Feature Types
+export interface WeatherAdvice {
+  weatherSummary: string;
+  farmingInstructions: string;
+  monthlyOutlook: string;
+}
+
+export interface NewsItem {
+  title: string;
+  summary: string;
+  source?: string;
+  publishedDate?: string;
+}
+
+export interface PriceSuggestion {
+  suggestedPriceRange: string;
+  reasoning: string;
+  confidence?: string; // e.g., High, Medium, Low
+}
+
+export interface SalesAnalysis {
+  keyInsights: string[];
+  actionableRecommendations: string[];
+  demandForecast?: string; // Optional: e.g., "Demand for tomatoes is expected to rise in the next 2 weeks."
+  seasonalTrends?: string; // Optional
+}
+
+// Input types for AI flows will be defined in their respective files using Zod.
+// Output types for AI flows will also be defined with Zod and exported.

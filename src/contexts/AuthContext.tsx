@@ -10,8 +10,8 @@ interface AuthContextType {
   user: User | null;
   authError: string | null;
   isLoadingAuth: boolean;
-  login: (email: string, role: UserRole, name?: string) => Promise<boolean>; // name is for mock, password would be here
-  register: (name: string, email: string, role: UserRole) => Promise<boolean>; // password would be here
+  login: (email: string, role: UserRole, name?: string) => Promise<boolean>;
+  register: (name: string, email: string, role: UserRole, location?: string) => Promise<boolean>; // Added location for farmer
   logout: () => void;
   selectedRole: UserRole | null;
   setSelectedRole: (role: UserRole | null) => void;
@@ -20,7 +20,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Helper function to set a cookie
 function setCookie(name: string, value: string, days: number) {
   let expires = "";
   if (days) {
@@ -31,7 +30,6 @@ function setCookie(name: string, value: string, days: number) {
   document.cookie = name + "=" + (encodeURIComponent(value) || "")  + expires + "; path=/";
 }
 
-// Helper function to erase a cookie
 function eraseCookie(name: string) {   
   document.cookie = name +'=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
 }
@@ -48,7 +46,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     setIsLoadingAuth(true);
-    // Load registered users from localStorage
     const storedRegisteredUsers = localStorage.getItem(REGISTERED_USERS_KEY);
     if (storedRegisteredUsers) {
       try {
@@ -59,13 +56,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     }
 
-    // Load current user and role
     const storedUserString = localStorage.getItem("farmLinkUser");
     if (storedUserString) {
       try {
         const storedUser: User = JSON.parse(storedUserString);
         setUser(storedUser);
-        setCookie("farmLinkUser", storedUserString, 7);
+        setCookie("farmLinkUser", storedUserString, 7); 
       } catch (e) {
         console.error("Failed to parse stored user from localStorage", e);
         localStorage.removeItem("farmLinkUser");
@@ -84,7 +80,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const login = async (email: string, role: UserRole): Promise<boolean> => {
     setAuthError(null);
     setIsLoadingAuth(true);
-    await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 300)); 
 
     const foundUser = registeredUsers.find(u => u.email === email);
 
@@ -97,6 +93,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(foundUser);
         setSelectedRoleState(role);
         setIsLoadingAuth(false);
+        // No router.push here, let page handle redirection based on auth state
         return true;
       } else {
         setAuthError(`User found, but role is incorrect. Expected ${role}, got ${foundUser.role}.`);
@@ -110,10 +107,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const register = async (name: string, email: string, role: UserRole): Promise<boolean> => {
+  const register = async (name: string, email: string, role: UserRole, location?: string): Promise<boolean> => {
     setAuthError(null);
     setIsLoadingAuth(true);
-    await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 300));
 
     if (registeredUsers.some(u => u.email === email)) {
       setAuthError("Email already registered. Please login or use a different email.");
@@ -121,12 +118,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return false;
     }
 
-    const newUser: User = { id: Date.now().toString(), email, role, name };
+    const newUser: User = { 
+        id: Date.now().toString(), 
+        email, 
+        role, 
+        name,
+        ...(role === 'farmer' && location && { location }) // Add location if farmer and location is provided
+    };
     const updatedRegisteredUsers = [...registeredUsers, newUser];
     localStorage.setItem(REGISTERED_USERS_KEY, JSON.stringify(updatedRegisteredUsers));
     setRegisteredUsers(updatedRegisteredUsers);
     
-    // Automatically login after registration
     const userString = JSON.stringify(newUser);
     localStorage.setItem("farmLinkUser", userString);
     localStorage.setItem("farmLinkSelectedRole", role);
@@ -134,18 +136,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(newUser);
     setSelectedRoleState(role);
     setIsLoadingAuth(false);
+    // No router.push here
     return true;
   };
 
   const logout = () => {
     setUser(null);
-    setSelectedRoleState(null);
+    // Keep selectedRole if you want to remember the last role context, or clear it:
+    // setSelectedRoleState(null); 
+    // localStorage.removeItem("farmLinkSelectedRole");
     setAuthError(null);
     localStorage.removeItem("farmLinkUser");
-    localStorage.removeItem("farmLinkSelectedRole");
     eraseCookie("farmLinkUser"); 
-    router.push("/");
-    router.refresh();
+    router.push("/"); 
+    router.refresh(); 
   };
 
   const setSelectedRole = (role: UserRole | null) => {

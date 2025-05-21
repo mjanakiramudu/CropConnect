@@ -2,18 +2,18 @@
 "use client";
 
 import Link from "next/link";
-import { Leaf, LogIn, LogOut, UserPlus, ShoppingCart, Tractor, LayoutDashboard, ListOrdered } from "lucide-react"; // Added ListOrdered
+import { Leaf, LogIn, LogOut, UserPlus, ShoppingCart, Tractor, LayoutDashboard, ListOrdered, TrendingUp } from "lucide-react"; 
 import { Button } from "@/components/ui/button";
 import { APP_NAME } from "@/lib/constants";
 import { useAuth } from "@/contexts/AuthContext";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { useCart } from "@/contexts/CartContext"; // Import useCart
+import { useCart } from "@/contexts/CartContext"; 
 
 export function Navbar() {
   const { isAuthenticated, user, logout, selectedRole } = useAuth();
   const { translate } = useLanguage();
-  const { cart } = useCart(); // Get cart to display item count
+  const { cart } = useCart(); 
 
   const cartItemCount = cart.reduce((sum, item) => sum + item.cartQuantity, 0);
 
@@ -27,7 +27,7 @@ export function Navbar() {
           </span>
         </Link>
         
-        <nav className="flex flex-1 items-center space-x-2 md:space-x-4">
+        <nav className="flex flex-1 items-center space-x-1 md:space-x-2">
           {isAuthenticated && user?.role === "customer" && (
             <>
               <Button variant="ghost" asChild size="sm" className="px-2 md:px-3">
@@ -51,10 +51,14 @@ export function Navbar() {
             </>
           )}
           {isAuthenticated && user?.role === "farmer" && (
-            <Button variant="ghost" asChild size="sm" className="px-2 md:px-3">
-              <Link href="/farmer/dashboard"><LayoutDashboard className="mr-2 h-4 w-4" />{translate('dashboard', 'Dashboard')}</Link>
-            </Button>
-            // Add farmer specific nav links here later if needed, e.g. Analytics, News
+            <>
+                <Button variant="ghost" asChild size="sm" className="px-2 md:px-3">
+                <Link href="/farmer/dashboard"><LayoutDashboard className="mr-2 h-4 w-4" />{translate('dashboard', 'Dashboard')}</Link>
+                </Button>
+                 <Button variant="ghost" asChild size="sm" className="px-2 md:px-3">
+                <Link href="/farmer/dashboard/analytics"><TrendingUp className="mr-2 h-4 w-4" />{translate('analytics', 'Analytics')}</Link>
+                </Button>
+            </>
           )}
         </nav>
 

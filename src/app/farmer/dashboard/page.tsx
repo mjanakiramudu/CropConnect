@@ -4,14 +4,17 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { PlusCircle, ListOrdered, BarChart2, DollarSign, Edit, Bell, Eye, EyeOff } from "lucide-react";
+import { PlusCircle, ListOrdered, BarChart2, DollarSign, Edit, Bell, Eye, EyeOff, CloudSun, Newspaper, SearchCode, TrendingUp } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProducts } from "@/contexts/ProductContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import type { SaleNotification, SaleNotificationItem } from "@/lib/types";
+import type { SaleNotification } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
+import { WeatherAdvisor } from "@/components/farmer/WeatherAdvisor";
+import { FarmingNews } from "@/components/farmer/FarmingNews";
+import { PricePredictor } from "@/components/farmer/PricePredictor";
 
 export default function FarmerDashboardPage() {
   const { user } = useAuth();
@@ -55,8 +58,7 @@ export default function FarmerDashboardPage() {
 
   const totalProducts = farmerProducts.length;
   const totalInventoryQuantity = farmerProducts.reduce((sum, p) => sum + p.quantity, 0);
-  // Mock sales data - sum of totalAmount from read notifications
-  const totalRevenue = notifications.filter(n => n.read).reduce((sum, n) => sum + n.totalAmount, 0);
+  const totalRevenue = notifications.filter(n => n.read).reduce((sum, n) => sum + n.totalAmount, 0); // Based on read notifications for simplicity
   const unreadNotificationCount = notifications.filter(n => !n.read).length;
   const displayedNotifications = showAllNotifications ? notifications : notifications.slice(0, 3);
 
@@ -67,16 +69,24 @@ export default function FarmerDashboardPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{translate('farmerDashboard', 'Farmer Dashboard')}</h1>
           <p className="text-muted-foreground">
-            {translate('welcomeBackFarmer', `Welcome back, ${user?.name || 'Farmer'}! Manage your products and sales.`)}
+            {translate('welcomeBackFarmer', `Welcome back, ${user?.name || 'Farmer'}! Manage your products, sales, and gain insights.`)}
           </p>
         </div>
-        <Button asChild>
-          <Link href="/farmer/dashboard/add-product">
-            <PlusCircle className="mr-2 h-4 w-4" /> {translate('addProduct', 'Add New Product')}
-          </Link>
-        </Button>
+        <div className="flex gap-2 flex-wrap">
+            <Button asChild variant="outline">
+                <Link href="/farmer/dashboard/analytics">
+                    <TrendingUp className="mr-2 h-4 w-4" /> {translate('viewAnalytics', 'View Analytics')}
+                </Link>
+            </Button>
+            <Button asChild>
+            <Link href="/farmer/dashboard/add-product">
+                <PlusCircle className="mr-2 h-4 w-4" /> {translate('addProduct', 'Add New Product')}
+            </Link>
+            </Button>
+        </div>
       </div>
 
+      {/* Key Metrics Summary Cards */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -100,16 +110,25 @@ export default function FarmerDashboardPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{translate('totalRevenue', 'Total Revenue (from Sales)')}</CardTitle>
+            <CardTitle className="text-sm font-medium">{translate('totalRevenueFromSales', 'Revenue (Sales Marked Read)')}</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">${totalRevenue.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">{translate('basedOnSales', 'based on sales marked as read')}</p>
+            <p className="text-xs text-muted-foreground">{translate('basedOnSales', 'from sales marked as read')}</p>
           </CardContent>
         </Card>
       </div>
+
+      {/* AI Powered Tools Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <WeatherAdvisor />
+        <PricePredictor />
+      </div>
       
+      <FarmingNews />
+
+
       {/* Sales Notifications Section */}
       {notifications.length > 0 && (
         <div>
@@ -123,7 +142,7 @@ export default function FarmerDashboardPage() {
             </h2>
             {unreadNotificationCount > 0 && (
                 <Button variant="outline" size="sm" onClick={markAllAsRead}>
-                    <EyeOff className="mr-2 h-4 w-4"/> Mark all as read
+                    <EyeOff className="mr-2 h-4 w-4"/> {translate('markAllRead', 'Mark all as read')}
                 </Button>
             )}
           </div>
@@ -137,7 +156,7 @@ export default function FarmerDashboardPage() {
                     </CardTitle>
                     {!notif.read && (
                       <Button variant="ghost" size="sm" onClick={() => markNotificationAsRead(notif.id)}>
-                        <Eye className="mr-2 h-4 w-4"/> Mark as Read
+                        <Eye className="mr-2 h-4 w-4"/> {translate('markAsRead', 'Mark as Read')}
                       </Button>
                     )}
                   </div>
@@ -165,6 +184,7 @@ export default function FarmerDashboardPage() {
       )}
 
 
+      {/* My Products Section */}
       <div>
         <h2 className="text-2xl font-semibold mb-4">{translate('myProducts', 'My Products')}</h2>
         {farmerProducts.length === 0 ? (

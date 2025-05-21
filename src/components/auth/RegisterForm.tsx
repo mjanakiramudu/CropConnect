@@ -16,21 +16,34 @@ import {
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
 import type { UserRole } from "@/lib/types";
-import { Loader2, AlertTriangle } from "lucide-react";
+import { Loader2, AlertTriangle, MapPin } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useRouter } from "next/navigation";
 
-const formSchema = z.object({
+const formSchemaBase = {
   name: z.string().min(2, { message: "Name must be at least 2 characters."}),
   email: z.string().email({ message: "Invalid email address." }),
   password: z.string().min(6, { message: "Password must be at least 6 characters." }),
   confirmPassword: z.string(),
+};
+
+const farmerFormSchema = z.object({
+  ...formSchemaBase,
+  location: z.string().min(3, {message: "Location is required for farmers."}),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
 });
+
+const customerFormSchema = z.object({
+  ...formSchemaBase
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
+
 
 interface RegisterFormProps {
   role: UserRole;
@@ -42,13 +55,16 @@ export function RegisterForm({ role }: RegisterFormProps) {
   const { translate } = useLanguage();
   const router = useRouter();
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+  const currentFormSchema = role === 'farmer' ? farmerFormSchema : customerFormSchema;
+
+  const form = useForm<z.infer<typeof currentFormSchema>>({
+    resolver: zodResolver(currentFormSchema),
     defaultValues: {
       name: "",
       email: "",
       password: "",
       confirmPassword: "",
+      ...(role === 'farmer' && { location: "" }),
     },
   });
 
@@ -56,7 +72,6 @@ export function RegisterForm({ role }: RegisterFormProps) {
     clearAuthError();
   }, [clearAuthError, role]);
 
-  // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated && user) {
       if (user.role === 'farmer') {
@@ -67,14 +82,19 @@ export function RegisterForm({ role }: RegisterFormProps) {
     }
   }, [isAuthenticated, user, router]);
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: z.infer<typeof currentFormSchema>) {
     setIsSubmitting(true);
     clearAuthError();
-    const success = await register(values.name, values.email, role);
-    if (success) {
-      // Redirect handled by useEffect on page or AuthContext
+    let success;
+    if (role === 'farmer' && 'location' in values) {
+        success = await register(values.name, values.email, role, values.location);
+    } else {
+        success = await register(values.name, values.email, role);
     }
-    // If registration fails, authError will be set in AuthContext
+    
+    if (success) {
+      // Redirection handled by useEffect
+    }
     setIsSubmitting(false);
   }
 
@@ -113,6 +133,24 @@ export function RegisterForm({ role }: RegisterFormProps) {
             </FormItem>
           )}
         />
+        {role === 'farmer' && (
+            <FormField
+            control={form.control}
+            name="location"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>{translate('yourLocationCityState', 'Your Location (City, State)')}</FormLabel>
+                <FormControl>
+                    <div className="relative">
+                        <MapPin className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input placeholder={translate('locationPlaceholderRegister', "e.g., Nashik, Maharashtra")} {...field} className="pl-10" />
+                    </div>
+                </FormControl>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+        )}
         <FormField
           control={form.control}
           name="password"
