@@ -10,7 +10,7 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { APP_NAME } from "@/lib/constants";
-import { Button } from "@/components/ui/button"; // Added import
+import { Button } from "@/components/ui/button";
 
 export default function LoginPage() {
   const params = useParams();

@@ -1,4 +1,4 @@
-export const APP_NAME = "FarmLink";
+export const APP_NAME = "CropConnect";
 export const DEFAULT_LANGUAGE = "en";
 export const SUPPORTED_LANGUAGES = [
   { code: "en", name: "English" },

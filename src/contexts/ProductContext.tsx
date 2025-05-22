@@ -13,15 +13,15 @@ interface ProductContextType {
   addProduct: (productData: Omit<Product, "id" | "farmerId" | "farmerName" | "dateAdded" | "averageRating" | "totalRatings">) => void;
   updateProduct: (updatedProductData: Product) => void;
   getProductById: (id: string) => Product | undefined;
-  updateProductQuantity: (productId: string, quantityChange: number) => boolean; // quantityChange can be negative
-  updateProductRating: (productId: string) => void; // Changed: no longer takes newRating directly
+  updateProductQuantity: (productId: string, quantityChange: number) => boolean; 
+  updateProductRating: (productId: string) => void; 
   loading: boolean;
 }
 
 const ProductContext = createContext<ProductContextType | undefined>(undefined);
 
-const PRODUCTS_STORAGE_KEY = "farmLinkProducts";
-const RATINGS_STORAGE_KEY = "farmLinkRatings";
+const PRODUCTS_STORAGE_KEY = "cropConnectProducts"; // Updated key
+const RATINGS_STORAGE_KEY = "cropConnectRatings"; // Updated key
 
 
 export const ProductProvider = ({ children }: { children: ReactNode }) => {
@@ -53,11 +53,10 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     setLoading(true);
     const storedProductsString = localStorage.getItem(PRODUCTS_STORAGE_KEY);
-    let initialProducts = mockProducts.map(p => ({...p, averageRating: 0, totalRatings: 0})); // Add default rating fields
+    let initialProducts = mockProducts.map(p => ({...p, averageRating: 0, totalRatings: 0})); 
     if (storedProductsString) {
       try {
         const parsedProducts = JSON.parse(storedProductsString) as Product[];
-        // Ensure all products have rating fields
         initialProducts = parsedProducts.map(p => ({
             ...p, 
             averageRating: p.averageRating || 0, 

@@ -13,10 +13,11 @@ import { useProducts } from "@/contexts/ProductContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
-import type { SaleNotification, SaleNotificationItem, Order, OrderItem, CartItem } from "@/lib/types"; // Added Order, OrderItem
+import type { SaleNotification, Order, OrderItem, CartItem } from "@/lib/types";
 import { useState } from "react";
 
-const CUSTOMER_ORDERS_STORAGE_KEY_PREFIX = "farmLinkCustomerOrders_";
+const CUSTOMER_ORDERS_STORAGE_KEY_PREFIX = "cropConnectCustomerOrders_"; // Updated key
+const FARMER_NOTIFICATIONS_STORAGE_KEY_PREFIX = "cropConnectFarmerNotifications_"; // Updated key
 
 export default function CheckoutPage() {
   const { translate } = useLanguage();
@@ -46,7 +47,7 @@ export default function CheckoutPage() {
         console.error("Error parsing existing orders", e);
       }
     }
-    existingOrders.unshift(order); // Add new order to the beginning
+    existingOrders.unshift(order); 
     localStorage.setItem(storageKey, JSON.stringify(existingOrders));
   };
 
@@ -61,10 +62,9 @@ export default function CheckoutPage() {
     }
     setIsProcessingOrder(true);
 
-    // 1. Update product quantities
     let allQuantitiesUpdated = true;
     for (const item of cart) {
-      const success = updateProductQuantity(item.id, -item.cartQuantity); // Decrease quantity
+      const success = updateProductQuantity(item.id, -item.cartQuantity); 
       if (!success) {
         allQuantitiesUpdated = false;
         safeToast({
@@ -83,9 +83,8 @@ export default function CheckoutPage() {
     
     const orderId = `order-${Date.now()}`;
 
-    // 2. Create Order object
     const orderItems: OrderItem[] = cart.map((cartItem: CartItem) => ({
-      productId: cartItem.id, // Keep original product ID
+      productId: cartItem.id, 
       name: cartItem.name,
       description: cartItem.description,
       pricePerUnit: cartItem.price, 
@@ -105,14 +104,12 @@ export default function CheckoutPage() {
       userId: user.id,
       items: orderItems,
       totalAmount: total,
-      status: "Delivered", // Mock: Mark as delivered immediately for rating purposes
+      status: "Delivered", 
       createdAt: new Date().toISOString(),
-      // shippingAddress: { fullName: "Mock Name", address: "Mock Address", ... } // Capture from form
     };
     saveOrderForCustomer(user.id, newOrder);
 
 
-    // 3. Simulate farmer notification
     const notificationsByFarmer: Record<string, SaleNotification> = {};
     cart.forEach(item => {
       if (!notificationsByFarmer[item.farmerId]) {
@@ -135,7 +132,7 @@ export default function CheckoutPage() {
     });
 
     for (const farmerId in notificationsByFarmer) {
-        const farmerNotificationStoreKey = `farmLinkFarmerNotifications_${farmerId}`;
+        const farmerNotificationStoreKey = `${FARMER_NOTIFICATIONS_STORAGE_KEY_PREFIX}${farmerId}`;
         const existingNotificationsString = localStorage.getItem(farmerNotificationStoreKey);
         let existingNotifications: SaleNotification[] = [];
         if (existingNotificationsString) {
@@ -147,10 +144,8 @@ export default function CheckoutPage() {
         localStorage.setItem(farmerNotificationStoreKey, JSON.stringify(existingNotifications));
     }
 
-    // 4. Clear cart
     clearCart();
 
-    // 5. Show success & redirect
     safeToast({
       title: translate('orderPlacedSuccessTitle', "Order Placed!"),
       description: translate('orderPlacedSuccessDesc', "Thank you for your purchase. Your items will be on their way soon."),
@@ -250,7 +245,7 @@ export default function CheckoutPage() {
         <CardFooter>
           <Button size="lg" className="w-full" onClick={handlePlaceOrder} disabled={cart.length === 0 || loadingCart || isProcessingOrder}>
             {isProcessingOrder ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <CreditCard className="mr-2 h-5 w-5" /> }
-            {isProcessingOrder ? translate('processingOrder', 'Processing Order...') : translate('placeOrder', `Place Order (${total.toFixed(2)})`)}
+            {isProcessingOrder ? translate('processingOrder', 'Processing Order...') : translate('placeOrder', `Place Order ($${total.toFixed(2)})`)}
           </Button>
         </CardFooter>
       </Card>

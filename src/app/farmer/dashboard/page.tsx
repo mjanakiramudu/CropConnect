@@ -16,6 +16,8 @@ import { WeatherAdvisor } from "@/components/farmer/WeatherAdvisor";
 import { FarmingNews } from "@/components/farmer/FarmingNews";
 import { PricePredictor } from "@/components/farmer/PricePredictor";
 
+const FARMER_NOTIFICATIONS_STORAGE_KEY_PREFIX = "cropConnectFarmerNotifications_"; // Updated key
+
 export default function FarmerDashboardPage() {
   const { user } = useAuth();
   const { farmerProducts } = useProducts();
@@ -25,7 +27,7 @@ export default function FarmerDashboardPage() {
 
   useEffect(() => {
     if (user && user.role === 'farmer') {
-      const farmerNotificationStoreKey = `farmLinkFarmerNotifications_${user.id}`;
+      const farmerNotificationStoreKey = `${FARMER_NOTIFICATIONS_STORAGE_KEY_PREFIX}${user.id}`;
       const storedNotificationsString = localStorage.getItem(farmerNotificationStoreKey);
       if (storedNotificationsString) {
         try {
@@ -44,7 +46,7 @@ export default function FarmerDashboardPage() {
     );
     setNotifications(updatedNotifications);
     if (user) {
-      localStorage.setItem(`farmLinkFarmerNotifications_${user.id}`, JSON.stringify(updatedNotifications));
+      localStorage.setItem(`${FARMER_NOTIFICATIONS_STORAGE_KEY_PREFIX}${user.id}`, JSON.stringify(updatedNotifications));
     }
   };
   
@@ -52,13 +54,13 @@ export default function FarmerDashboardPage() {
     const updatedNotifications = notifications.map(n => ({ ...n, read: true }));
     setNotifications(updatedNotifications);
      if (user) {
-      localStorage.setItem(`farmLinkFarmerNotifications_${user.id}`, JSON.stringify(updatedNotifications));
+      localStorage.setItem(`${FARMER_NOTIFICATIONS_STORAGE_KEY_PREFIX}${user.id}`, JSON.stringify(updatedNotifications));
     }
   };
 
   const totalProducts = farmerProducts.length;
   const totalInventoryQuantity = farmerProducts.reduce((sum, p) => sum + p.quantity, 0);
-  const totalRevenue = notifications.filter(n => n.read).reduce((sum, n) => sum + n.totalAmount, 0); // Based on read notifications for simplicity
+  const totalRevenue = notifications.filter(n => n.read).reduce((sum, n) => sum + n.totalAmount, 0); 
   const unreadNotificationCount = notifications.filter(n => !n.read).length;
   const displayedNotifications = showAllNotifications ? notifications : notifications.slice(0, 3);
 
@@ -86,7 +88,6 @@ export default function FarmerDashboardPage() {
         </div>
       </div>
 
-      {/* Key Metrics Summary Cards */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -120,7 +121,6 @@ export default function FarmerDashboardPage() {
         </Card>
       </div>
 
-      {/* AI Powered Tools Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <WeatherAdvisor />
         <PricePredictor />
@@ -129,7 +129,6 @@ export default function FarmerDashboardPage() {
       <FarmingNews />
 
 
-      {/* Sales Notifications Section */}
       {notifications.length > 0 && (
         <div>
           <div className="flex justify-between items-center mb-4">
@@ -184,7 +183,6 @@ export default function FarmerDashboardPage() {
       )}
 
 
-      {/* My Products Section */}
       <div>
         <h2 className="text-2xl font-semibold mb-4">{translate('myProducts', 'My Products')}</h2>
         {farmerProducts.length === 0 ? (

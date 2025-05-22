@@ -15,7 +15,7 @@ import { AddToCartDialog } from "@/components/customer/AddToCartDialog";
 import { useEffect, useState } from "react";
 import type { Rating } from "@/lib/types";
 
-const RATINGS_STORAGE_KEY = "farmLinkRatings";
+const RATINGS_STORAGE_KEY = "cropConnectRatings"; // Updated key
 
 export default function ProductDetailPage() {
   const params = useParams();
@@ -153,12 +153,12 @@ export default function ProductDetailPage() {
         </h2>
         {productReviews.length > 0 ? (
           <div className="space-y-6">
-            {productReviews.slice(0, 5).map(review => ( // Show top 5 reviews
+            {productReviews.slice(0, 5).map(review => ( 
               <Card key={review.orderId + review.userId} className="shadow-sm">
                 <CardContent className="p-4">
                   <div className="flex items-center mb-1">
                     {renderStars(review.rating, "h-4 w-4")}
-                    <span className="ml-2 text-sm font-medium text-foreground">{`User ${review.userId.substring(0, 5)}...`}</span> {/* Mock user display */}
+                    <span className="ml-2 text-sm font-medium text-foreground">{`User ${review.userId.substring(0, 5)}...`}</span> 
                   </div>
                   <p className="text-xs text-muted-foreground mb-2">
                     {translate('reviewedOn', 'Reviewed on:')} {new Date(review.createdAt).toLocaleDateString()}

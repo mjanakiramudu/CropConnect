@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode, useEffect } from "react";
-import { DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES } from "@/lib/constants";
+import { DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES, APP_NAME } from "@/lib/constants";
 
 interface LanguageContextType {
   language: string;
@@ -11,9 +11,15 @@ interface LanguageContextType {
 
 // Basic translations store
 const translations: Record<string, Record<string, string>> = {
+  en: {
+    appName: APP_NAME,
+    loginToAccess: `Login to access your ${APP_NAME} account.`,
+    createCropConnectAccount: `Create your ${APP_NAME} account.`,
+    // Add other English defaults if they specifically used "FarmLink" and now need to use APP_NAME or "CropConnect"
+  },
   hi: {
     welcome: "स्वागत है",
-    appName: "फार्मलिंक",
+    appName: "क्रॉपकनेक्ट",
     farmer: "किसान",
     customer: "ग्राहक",
     login: "लॉग इन करें",
@@ -35,11 +41,13 @@ const translations: Record<string, Record<string, string>> = {
     speak: "बोलें",
     processing: "प्रोसेस हो रहा है...",
     confirmAndSave: "पुष्टि करें और सहेजें",
-    searchProducts: "उत्पाद खोजें..."
+    searchProducts: "उत्पाद खोजें...",
+    loginToAccess: `अपने ${APP_NAME} खाते तक पहुंचने के लिए लॉग इन करें।`,
+    createCropConnectAccount: `अपना ${APP_NAME} खाता बनाएं।`,
   },
   te: {
     welcome: "స్వాగతం",
-    appName: "ఫార్మ్‌లింక్",
+    appName: "క్రాప్‌కనెక్ట్",
     farmer: "రైతు",
     customer: "వినియోగదారుడు",
     login: "లాగిన్ చేయండి",
@@ -61,11 +69,13 @@ const translations: Record<string, Record<string, string>> = {
     speak: "చెప్పండి",
     processing: "ప్రాసెస్ అవుతోంది...",
     confirmAndSave: "నిర్ధారించి సేవ్ చేయండి",
-    searchProducts: "ఉత్పత్తుల కోసం శోధించండి..."
+    searchProducts: "ఉత్పత్తుల కోసం శోధించండి...",
+    loginToAccess: `మీ ${APP_NAME} ఖాతాను యాక్సెస్ చేయడానికి లాగిన్ చేయండి.`,
+    createCropConnectAccount: `మీ ${APP_NAME} ఖాతాను సృష్టించండి.`,
   },
   ta: {
     welcome: "வரவேற்கிறோம்",
-    appName: "பார்ம்லிங்க்",
+    appName: "கிராப்கனெக்ட்",
     farmer: "விவசாயி",
     customer: "வாடிக்கையாளர்",
     login: "உள்நுழையவும்",
@@ -87,7 +97,9 @@ const translations: Record<string, Record<string, string>> = {
     speak: "பேசுங்கள்",
     processing: "செயலாக்கத்தில் உள்ளது...",
     confirmAndSave: "உறுதிப்படுத்தி சேமிக்கவும்",
-    searchProducts: "பொருட்களைத் தேடு..."
+    searchProducts: "பொருட்களைத் தேடு...",
+    loginToAccess: `உங்கள் ${APP_NAME} கணக்கை அணுக உள்நுழையவும்.`,
+    createCropConnectAccount: `உங்கள் ${APP_NAME} கணக்கை உருவாக்கவும்.`,
   },
 };
 
@@ -97,7 +109,7 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
   const [language, setLanguageState] = useState<string>(DEFAULT_LANGUAGE);
 
   useEffect(() => {
-    const storedLang = localStorage.getItem("farmLinkLanguage");
+    const storedLang = localStorage.getItem("cropConnectLanguage"); // Updated key
     if (storedLang && SUPPORTED_LANGUAGES.find(l => l.code === storedLang)) {
       setLanguageState(storedLang);
     }
@@ -106,12 +118,12 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
   const setLanguage = (lang: string) => {
     if (SUPPORTED_LANGUAGES.find(l => l.code === lang)) {
       setLanguageState(lang);
-      localStorage.setItem("farmLinkLanguage", lang);
+      localStorage.setItem("cropConnectLanguage", lang); // Updated key
     }
   };
 
   const translate = (key: string, defaultText: string) => {
-    return translations[language]?.[key] || defaultText;
+    return translations[language]?.[key] || translations['en']?.[key] || defaultText;
   };
 
   return (

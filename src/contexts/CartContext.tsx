@@ -18,7 +18,7 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-const CARTS_STORAGE_KEY = "farmLinkCarts";
+const CARTS_STORAGE_KEY = "cropConnectCarts"; // Updated key
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const { user, isAuthenticated } = useAuth();
@@ -67,7 +67,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         allCarts = JSON.parse(allCartsString);
       } catch (e) {
         console.error("Failed to parse carts for saving", e);
-        // Potentially reset all carts if corrupt, or handle error appropriately
       }
     }
     localStorage.setItem(CARTS_STORAGE_KEY, JSON.stringify({ ...allCarts, [userId]: updatedCart }));
@@ -93,7 +92,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       if (existingItemIndex > -1) {
         newCart = prevCart.map((item, index) =>
           index === existingItemIndex
-            ? { ...item, cartQuantity: Math.min(item.cartQuantity + quantity, product.quantity) } // Ensure not exceeding available stock
+            ? { ...item, cartQuantity: Math.min(item.cartQuantity + quantity, product.quantity) } 
             : item
         );
         safeToast({ title: "Cart Updated", description: `${product.name} quantity increased.` });
@@ -122,12 +121,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     if (!productInCart) return;
 
     if (newQuantity <= 0) {
-      removeFromCart(productId); // This already has a toast
+      removeFromCart(productId); 
       return;
     }
-    if (newQuantity > productInCart.quantity) { // Check against original product quantity (max available)
+    if (newQuantity > productInCart.quantity) { 
         safeToast({ title: "Not Enough Stock", description: `Only ${productInCart.quantity} ${productInCart.unit} available for ${productInCart.name}.`, variant: "destructive" });
-        setCart(prevCart => { // Revert to max available if attempted to exceed
+        setCart(prevCart => { 
              const updatedCart = prevCart.map(item =>
                 item.id === productId ? { ...item, cartQuantity: productInCart.quantity } : item
             );
@@ -151,8 +150,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     if (!user) return;
     setCart([]);
     saveCartForUser(user.id, []);
-    // Optionally add a toast here if desired:
-    // safeToast({ title: "Cart Cleared", description: "Your shopping cart has been emptied." });
   };
 
   const getCartTotal = () => {
@@ -173,4 +170,3 @@ export const useCart = () => {
   }
   return context;
 };
-

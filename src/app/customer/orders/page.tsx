@@ -15,10 +15,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
 import { useProducts } from "@/contexts/ProductContext";
-import { Badge } from "@/components/ui/badge"; // Added import
+import { Badge } from "@/components/ui/badge"; 
 
-const CUSTOMER_ORDERS_STORAGE_KEY_PREFIX = "farmLinkCustomerOrders_";
-const RATINGS_STORAGE_KEY = "farmLinkRatings";
+const CUSTOMER_ORDERS_STORAGE_KEY_PREFIX = "cropConnectCustomerOrders_"; // Updated key
+const RATINGS_STORAGE_KEY = "cropConnectRatings"; // Updated key
 
 export default function OrdersPage() {
   const { user, isAuthenticated } = useAuth();
@@ -96,7 +96,7 @@ export default function OrdersPage() {
       userId: user.id,
       orderId: orderId,
       rating: currentRating,
-      review: currentReview.trim() || undefined, // Store undefined if review is empty
+      review: currentReview.trim() || undefined, 
       createdAt: new Date().toISOString(),
     };
 
@@ -105,16 +105,16 @@ export default function OrdersPage() {
     const existingRatingIndex = productRatings.findIndex(r => r.userId === user.id && r.orderId === orderId);
 
     if (existingRatingIndex > -1) {
-        productRatings[existingRatingIndex] = newRatingEntry; // Update existing rating
+        productRatings[existingRatingIndex] = newRatingEntry; 
     } else {
-        productRatings.push(newRatingEntry); // Add new rating
+        productRatings.push(newRatingEntry); 
     }
     updatedAllRatings[item.productId] = productRatings;
     
     localStorage.setItem(RATINGS_STORAGE_KEY, JSON.stringify(updatedAllRatings));
-    setAllRatings(updatedAllRatings); // Update local state for immediate UI feedback
+    setAllRatings(updatedAllRatings); 
     
-    updateProductRating(item.productId); // Trigger product context to recalculate average
+    updateProductRating(item.productId); 
 
     safeToast({ title: translate('ratingSuccessTitle', "Rating Submitted"), description: translate('ratingSuccessDesc', `Thank you for rating ${item.name}!`) });
     setIsRatingDialogOpen(false);
@@ -158,7 +158,7 @@ export default function OrdersPage() {
             <Card key={order.id} className="shadow-lg">
               <CardHeader>
                 <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
-                    <CardTitle className="text-xl">{translate('orderId', 'Order ID:')} {order.id.substring(6)}</CardTitle> {/* Shorter ID display */}
+                    <CardTitle className="text-xl">{translate('orderId', 'Order ID:')} {order.id.substring(6)}</CardTitle> 
                     <Badge variant={order.status === "Delivered" ? "default" : "secondary"} className="w-fit bg-green-100 text-green-700 border-green-300 dark:bg-green-700 dark:text-green-100 dark:border-green-500">
                         {translate(order.status.toLowerCase(), order.status)}
                     </Badge>
@@ -213,7 +213,7 @@ export default function OrdersPage() {
       {selectedOrderItemForRating && (
         <Dialog open={isRatingDialogOpen} onOpenChange={(isOpen) => {
             setIsRatingDialogOpen(isOpen);
-            if (!isOpen) { // Reset when dialog closes
+            if (!isOpen) { 
                 setSelectedOrderItemForRating(null);
                 setCurrentRating(0);
                 setCurrentReview("");

@@ -10,6 +10,7 @@ import Link from "next/link";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
+import { APP_NAME } from "@/lib/constants";
 
 
 export default function RegisterPage() {
@@ -40,7 +41,7 @@ export default function RegisterPage() {
             {translate('register', 'Register')} {translate('asA', 'as a')} {role === 'farmer' ? translate('farmer', 'Farmer') : translate('customer', 'Customer')}
           </CardTitle>
           <CardDescription>
-            {translate('createFarmLinkAccount', 'Create your FarmLink account.')}
+            {translate('createCropConnectAccount', `Create your ${APP_NAME} account.`)}
           </CardDescription>
         </CardHeader>
         <CardContent>
