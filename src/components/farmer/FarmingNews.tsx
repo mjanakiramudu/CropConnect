@@ -26,7 +26,6 @@ export function FarmingNews() {
     setIsLoading(true);
     setError(null);
     setNews(null);
-    // Ensure speech synthesis is stopped if news is being refreshed
     if (typeof window !== "undefined" && window.speechSynthesis && window.speechSynthesis.speaking) {
         window.speechSynthesis.cancel();
         setSpeakingArticle(null);
@@ -40,8 +39,7 @@ export function FarmingNews() {
       setNews(result.newsItems);
     }
     setIsLoading(false);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentLanguage, region, translate]); // Removed 'translate' if not directly used in async logic to avoid re-runs, but it is used for error messages.
+  }, [currentLanguage, region]); 
   
   useEffect(() => {
     handleFetchNews();
@@ -54,52 +52,65 @@ export function FarmingNews() {
       return;
     }
 
-    // Case 1: Clicked "Stop Reading" for the currently announced speaking article
-    if (speakingArticle === articleTitle) {
-      window.speechSynthesis.cancel(); // Stop all speech
-      setSpeakingArticle(null);       // Clear the speaking state
+    // If this article is already speaking, stop it.
+    if (speakingArticle === articleTitle && window.speechSynthesis.speaking) {
+      window.speechSynthesis.cancel(); // This will trigger onend or onerror for the current utterance.
+      // The onend/onerror handler should setSpeakingArticle(null)
+      return;
     }
-    // Case 2: Clicked "Read Aloud" (either for a new article, or for the same article if it wasn't speaking/button said "Read Aloud")
-    else {
-      window.speechSynthesis.cancel(); // Stop anything else that might be speaking before starting new
 
-      const fullText = `${articleTitle}. ${textToSpeak}`; // Read title then summary
-      const utterance = new SpeechSynthesisUtterance(fullText);
-      const langCode = currentLanguage.split('-')[0]; // Use base language code like 'en', 'hi', 'te', 'ta'
-      utterance.lang = langCode;
-      // Note: Actual voice availability for regional languages (Telugu, Tamil, etc.)
-      // depends on the user's OS and browser having installed voice packs for those languages.
+    // If any other article is speaking, or if no article is speaking, stop current and start new.
+    window.speechSynthesis.cancel(); // Stop any current speech.
 
-      utterance.onstart = () => {
-        setSpeakingArticle(articleTitle); // Set which article is now intended to be speaking
-      };
+    const fullText = `${articleTitle}. ${textToSpeak}`;
+    const utterance = new SpeechSynthesisUtterance(fullText);
+    const langCode = currentLanguage.split('-')[0];
+    utterance.lang = langCode;
+    // Note: Actual voice availability depends on user's OS/browser having installed voice packs for regional languages.
 
-      utterance.onend = () => {
-        // Check if this specific article was the one that was supposed to be speaking and just finished
+    utterance.onstart = () => {
+      setSpeakingArticle(articleTitle);
+      setError(null); // Clear previous errors when new speech starts
+    };
+
+    utterance.onend = () => {
+      // Ensure this callback only clears state if it was this utterance that ended naturally.
+      // If cancel() was called, speakingArticle might already be null or different.
+      if (speakingArticle === articleTitle) {
+        setSpeakingArticle(null);
+      }
+    };
+
+    utterance.onerror = (event) => {
+      // If the error is due to interruption (e.g., by clicking "Stop Reading" or starting a new article),
+      // we don't want to show a user-facing error.
+      if (event.error === 'interrupted') {
+        console.log(`Speech for "${articleTitle}" (lang: ${langCode}) was intentionally interrupted.`);
+        // State is typically cleared by the action that caused the interruption (e.g. new onstart, or explicit cancel).
+        // We ensure speakingArticle is null if it was the one being interrupted.
         if (speakingArticle === articleTitle) {
-          setSpeakingArticle(null);
+            setSpeakingArticle(null);
         }
-      };
+        return; 
+      }
 
-      utterance.onerror = (event) => {
-        // Log more detailed error if available
-        console.error(`Speech synthesis error for "${articleTitle}" (lang: ${langCode}):`, event.error, event);
-        // Only set error and clear speaking state if this error pertains to the article we *thought* was speaking
-        if (speakingArticle === articleTitle) {
-          setError(translate('speechError', `Sorry, I couldn't read "${articleTitle}" aloud.`));
-          setSpeakingArticle(null);
-        }
-      };
-      
-      window.speechSynthesis.speak(utterance);
-    }
+      // For other types of errors:
+      console.error(`Speech synthesis error for "${articleTitle}" (lang: ${langCode}):`, event.error, event);
+      // Only set error and clear speaking state if this error pertains to the article we *thought* was speaking.
+      if (speakingArticle === articleTitle) {
+        setError(translate('speechError', `Sorry, I couldn't read "${articleTitle}" aloud.`));
+        setSpeakingArticle(null);
+      }
+    };
+    
+    window.speechSynthesis.speak(utterance);
   };
   
-  // Cleanup speech synthesis on component unmount
   useEffect(() => {
     return () => {
       if (typeof window !== "undefined" && window.speechSynthesis && window.speechSynthesis.speaking) {
         window.speechSynthesis.cancel();
+        setSpeakingArticle(null);
       }
     };
   }, []);
@@ -160,7 +171,7 @@ export function FarmingNews() {
                     onClick={() => handleReadAloud(item.summary, item.title)}
                   >
                     <Volume2 className="mr-2 h-4 w-4" /> 
-                    {speakingArticle === item.title ? translate('stopReading', 'Stop Reading') : translate('readAloud', 'Read Aloud')}
+                    {speakingArticle === item.title && window.speechSynthesis.speaking ? translate('stopReading', 'Stop Reading') : translate('readAloud', 'Read Aloud')}
                   </Button>
                 </CardFooter>
               </Card>
@@ -181,4 +192,3 @@ export function FarmingNews() {
     </Card>
   );
 }
-
