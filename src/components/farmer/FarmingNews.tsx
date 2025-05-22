@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Loader2, AlertTriangle, Newspaper, Volume2, Info } from "lucide-react";
@@ -17,14 +17,20 @@ export function FarmingNews() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [news, setNews] = useState<NewsItem[] | null>(null);
-  const [speakingArticle, setSpeakingArticle] = useState<string | null>(null);
+  const [speakingArticle, setSpeakingArticle] = useState<string | null>(null); // Holds the title of the article being spoken
 
-  const region = user?.location || "India"; // Default to India if user location not set
+  const farmerLocation = user?.location;
+  const region = farmerLocation || "India"; // Default to India if user location not set
 
-  const handleFetchNews = async () => {
+  const handleFetchNews = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     setNews(null);
+    // Ensure speech synthesis is stopped if news is being refreshed
+    if (typeof window !== "undefined" && window.speechSynthesis && window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
+        setSpeakingArticle(null);
+    }
 
     const result = await fetchFarmingNews({ region, language: currentLanguage, count: 3 });
 
@@ -34,48 +40,70 @@ export function FarmingNews() {
       setNews(result.newsItems);
     }
     setIsLoading(false);
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentLanguage, region, translate]); // Removed 'translate' if not directly used in async logic to avoid re-runs, but it is used for error messages.
   
   useEffect(() => {
-    // Automatically fetch news when the component mounts or language/region changes
     handleFetchNews();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentLanguage, region]); // Dependency array ensures re-fetch on language/region change
+  }, [handleFetchNews]);
 
 
-  const handleReadAloud = (text: string, title: string) => {
-    if (typeof window !== "undefined" && window.speechSynthesis) {
-      // If currently speaking this article, stop it
-      if (speakingArticle === title && window.speechSynthesis.speaking) {
-        window.speechSynthesis.cancel();
-        setSpeakingArticle(null); // Clear speaking state
-        return;
-      }
+  const handleReadAloud = (textToSpeak: string, articleTitle: string) => {
+    if (typeof window === "undefined" || !window.speechSynthesis) {
+      setError(translate('speechNotSupportedError', "Text-to-speech is not supported in your browser."));
+      return;
+    }
 
-      // If speaking another article, or not speaking, start this one
-      window.speechSynthesis.cancel(); // Stop any previous speech immediately
+    // Case 1: Clicked "Stop Reading" for the currently announced speaking article
+    if (speakingArticle === articleTitle) {
+      window.speechSynthesis.cancel(); // Stop all speech
+      setSpeakingArticle(null);       // Clear the speaking state
+    }
+    // Case 2: Clicked "Read Aloud" (either for a new article, or for the same article if it wasn't speaking/button said "Read Aloud")
+    else {
+      window.speechSynthesis.cancel(); // Stop anything else that might be speaking before starting new
 
-      const utterance = new SpeechSynthesisUtterance(title + ". " + text);
-      // Sets the language for speech synthesis. Quality/availability of regional voices depends on the user's OS/browser.
-      utterance.lang = currentLanguage.split('-')[0]; 
-      
+      const fullText = `${articleTitle}. ${textToSpeak}`; // Read title then summary
+      const utterance = new SpeechSynthesisUtterance(fullText);
+      const langCode = currentLanguage.split('-')[0]; // Use base language code like 'en', 'hi', 'te', 'ta'
+      utterance.lang = langCode;
+      // Note: Actual voice availability for regional languages (Telugu, Tamil, etc.)
+      // depends on the user's OS and browser having installed voice packs for those languages.
+
       utterance.onstart = () => {
-        setSpeakingArticle(title); // Set speaking state when speech actually starts
+        setSpeakingArticle(articleTitle); // Set which article is now intended to be speaking
       };
+
       utterance.onend = () => {
-        setSpeakingArticle(null); // Clear speaking state when speech ends
+        // Check if this specific article was the one that was supposed to be speaking and just finished
+        if (speakingArticle === articleTitle) {
+          setSpeakingArticle(null);
+        }
       };
+
       utterance.onerror = (event) => {
-        console.error("Speech synthesis error:", event);
-        setError(translate('speechError', "Sorry, I couldn't read this aloud."));
-        setSpeakingArticle(null); // Clear speaking state on error
+        // Log more detailed error if available
+        console.error(`Speech synthesis error for "${articleTitle}" (lang: ${langCode}):`, event.error, event);
+        // Only set error and clear speaking state if this error pertains to the article we *thought* was speaking
+        if (speakingArticle === articleTitle) {
+          setError(translate('speechError', `Sorry, I couldn't read "${articleTitle}" aloud.`));
+          setSpeakingArticle(null);
+        }
       };
       
       window.speechSynthesis.speak(utterance);
-    } else {
-      setError(translate('speechNotSupportedError', "Text-to-speech is not supported in your browser."));
     }
   };
+  
+  // Cleanup speech synthesis on component unmount
+  useEffect(() => {
+    return () => {
+      if (typeof window !== "undefined" && window.speechSynthesis && window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
+
 
   return (
     <Card className="shadow-lg">
@@ -132,9 +160,7 @@ export function FarmingNews() {
                     onClick={() => handleReadAloud(item.summary, item.title)}
                   >
                     <Volume2 className="mr-2 h-4 w-4" /> 
-                    {(speakingArticle === item.title && typeof window !== 'undefined' && window.speechSynthesis.speaking) 
-                        ? translate('stopReading', 'Stop Reading') 
-                        : translate('readAloud', 'Read Aloud')}
+                    {speakingArticle === item.title ? translate('stopReading', 'Stop Reading') : translate('readAloud', 'Read Aloud')}
                   </Button>
                 </CardFooter>
               </Card>

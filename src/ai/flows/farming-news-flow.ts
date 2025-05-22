@@ -38,7 +38,7 @@ const prompt = ai.definePrompt({
   name: 'farmingNewsPrompt',
   input: {schema: FarmingNewsInputSchema},
   output: {schema: FarmingNewsOutputSchema},
-  prompt: `You are an agricultural news aggregator. Your task is to find and summarize the most recent (within the last 2-3 days if possible, otherwise most relevant and important) farming-related news.
+  prompt: `You are an agricultural news aggregator. Your task is to find and summarize the latest farming-related news, prioritizing information from the last 2-3 days. If very recent news is unavailable for the specific region, then provide the most relevant and important recent news you can find.
 
 Region: {{{region}}}
 Language for summaries: {{{language}}}
