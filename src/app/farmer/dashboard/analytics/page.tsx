@@ -8,7 +8,7 @@ import { useEffect, useState, useMemo } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, AlertTriangle, ArrowLeft, TrendingUp, DollarSign, Package, CalendarDays, FileText } from "lucide-react";
+import { Loader2, AlertTriangle, ArrowLeft, TrendingUp, DollarSign, Package, CalendarDays, FileText, Volume2 } from "lucide-react";
 import Link from "next/link";
 import { fetchSalesInsights } from "@/app/actions";
 import type { SalesInsightsOutput } from "@/ai/flows/sales-insights-flow";
@@ -45,6 +45,7 @@ export default function SalesAnalyticsPage() {
   const [aiInsights, setAiInsights] = useState<SalesInsightsOutput | null>(null);
   const [loadingInsights, setLoadingInsights] = useState(false);
   const [insightsError, setInsightsError] = useState<string | null>(null);
+  const [isSpeakingInsights, setIsSpeakingInsights] = useState(false);
 
   useEffect(() => {
     if (user && user.role === 'farmer') {
@@ -112,11 +113,14 @@ export default function SalesAnalyticsPage() {
     setLoadingInsights(true);
     setInsightsError(null);
     setAiInsights(null);
+     if (typeof window !== "undefined" && window.speechSynthesis && window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
+        setIsSpeakingInsights(false);
+    }
 
-    // Prepare data for AI. Only send key fields to keep it concise.
     const simplifiedSalesData = notifications.map(n => ({
         orderId: n.orderId.substring(0,10),
-        customerName: n.customerName, // Could be anonymized if needed
+        customerName: n.customerName, 
         totalAmount: n.totalAmount,
         date: new Date(n.date).toISOString().split('T')[0],
         items: n.items.map(item => ({
@@ -125,7 +129,6 @@ export default function SalesAnalyticsPage() {
             pricePerUnit: item.pricePerUnit
         }))
     }));
-
 
     const result = await fetchSalesInsights({ 
         salesDataJson: JSON.stringify(simplifiedSalesData), 
@@ -139,7 +142,65 @@ export default function SalesAnalyticsPage() {
     }
     setLoadingInsights(false);
   };
+
+  const handleReadAloudInsights = () => {
+    if (!aiInsights || typeof window === "undefined" || !window.speechSynthesis) {
+      setInsightsError(translate('speechNotSupportedError', "Text-to-speech is not supported in your browser."));
+      return;
+    }
+
+    if (isSpeakingInsights) {
+      window.speechSynthesis.cancel();
+      setIsSpeakingInsights(false);
+      return;
+    }
+
+    let textToSpeak = `${translate('overallSummary', 'Overall Summary')}. ${aiInsights.overallSummary}. `;
+    textToSpeak += `${translate('keyInsights', 'Key Insights')}. ${aiInsights.keyInsights.join('. ')}. `;
+    textToSpeak += `${translate('actionableRecommendations', 'Actionable Recommendations')}. ${aiInsights.actionableRecommendations.join('. ')}. `;
+    if (aiInsights.demandForecast) {
+      textToSpeak += `${translate('demandForecast', 'Demand Forecast')}. ${aiInsights.demandForecast}. `;
+    }
+    if (aiInsights.seasonalTrends) {
+      textToSpeak += `${translate('seasonalTrends', 'Seasonal Trends')}. ${aiInsights.seasonalTrends}. `;
+    }
+    
+    const utterance = new SpeechSynthesisUtterance(textToSpeak);
+    const langCode = currentLanguage.split('-')[0];
+    utterance.lang = langCode;
+
+    utterance.onstart = () => {
+      setIsSpeakingInsights(true);
+      setInsightsError(null);
+    };
+
+    utterance.onend = () => {
+      setIsSpeakingInsights(false);
+    };
+
+    utterance.onerror = (event) => {
+      if (event.error === 'interrupted' || event.error === 'canceled') {
+        console.log(`Sales insights speech (lang: ${langCode}) was intentionally stopped.`);
+        setIsSpeakingInsights(false);
+        return;
+      }
+      console.error(`Sales insights speech error (lang: ${langCode}):`, event.error, event);
+      setInsightsError(translate('speechError', "Sorry, I couldn't read insights aloud."));
+      setIsSpeakingInsights(false);
+    };
+    
+    window.speechSynthesis.speak(utterance);
+  };
   
+  useEffect(() => {
+    return () => {
+      if (typeof window !== "undefined" && window.speechSynthesis && window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
+        setIsSpeakingInsights(false);
+      }
+    };
+  }, []);
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)]">
@@ -273,7 +334,7 @@ export default function SalesAnalyticsPage() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Button onClick={handleFetchInsights} disabled={loadingInsights || aggregatedSales.length === 0} className="w-full sm:w-auto">
+                    <Button onClick={handleFetchInsights} disabled={loadingInsights || aggregatedSales.length === 0} className="w-full sm:w-auto mb-4">
                         {loadingInsights && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         {translate('getAIInsightsButton', 'Generate AI Insights')}
                     </Button>
@@ -283,7 +344,7 @@ export default function SalesAnalyticsPage() {
                         </div>
                     )}
                     {aiInsights && !insightsError && (
-                        <div className="mt-6 space-y-4 p-4 bg-primary/5 border border-primary/20 rounded-md">
+                        <Card className="mt-2 p-4 bg-primary/5 border border-primary/20 space-y-3">
                             <div>
                                 <h4 className="font-semibold text-md text-primary mb-1">{translate('overallSummary', 'Overall Summary')}</h4>
                                 <p className="text-sm">{aiInsights.overallSummary}</p>
@@ -312,7 +373,16 @@ export default function SalesAnalyticsPage() {
                                 <p className="text-sm">{aiInsights.seasonalTrends}</p>
                                </div>
                             )}
-                        </div>
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={handleReadAloudInsights}
+                                className="mt-4 w-full"
+                            >
+                                <Volume2 className="mr-2 h-4 w-4" /> 
+                                {isSpeakingInsights ? translate('stopReading', 'Stop Reading') : translate('readAloudInsights', 'Read Insights Aloud')}
+                            </Button>
+                        </Card>
                     )}
                 </CardContent>
             </Card>
@@ -350,4 +420,3 @@ export default function SalesAnalyticsPage() {
     </div>
   );
 }
-

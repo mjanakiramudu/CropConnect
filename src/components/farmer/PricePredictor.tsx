@@ -1,13 +1,13 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, AlertTriangle, SearchCode, DollarSign } from "lucide-react";
+import { Loader2, AlertTriangle, SearchCode, DollarSign, Volume2 } from "lucide-react";
 import { fetchPricePrediction } from "@/app/actions";
 import type { PricePredictorOutput } from "@/ai/flows/price-predictor-flow";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -27,6 +27,7 @@ export function PricePredictor() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [prediction, setPrediction] = useState<PricePredictorOutput | null>(null);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   
 
   const handleSubmit = async () => {
@@ -37,6 +38,11 @@ export function PricePredictor() {
     setIsLoading(true);
     setError(null);
     setPrediction(null);
+    if (typeof window !== "undefined" && window.speechSynthesis && window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
+        setIsSpeaking(false);
+    }
+
 
     const result = await fetchPricePrediction({ 
         location, 
@@ -53,6 +59,55 @@ export function PricePredictor() {
     }
     setIsLoading(false);
   };
+
+  const handleReadAloudPrediction = () => {
+    if (!prediction || typeof window === "undefined" || !window.speechSynthesis) {
+      setError(translate('speechNotSupportedError', "Text-to-speech is not supported in your browser."));
+      return;
+    }
+
+    if (isSpeaking) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+      return;
+    }
+    
+    const textToSpeak = `${translate('suggestedRangeLabel', 'Suggested Range:')} ${prediction.suggestedPriceRange}. ${translate('reasoningLabel', 'Reasoning:')} ${prediction.reasoning}. ${prediction.confidence ? `${translate('confidenceLabel', 'Confidence:')} ${prediction.confidence}.` : ''}`;
+    const utterance = new SpeechSynthesisUtterance(textToSpeak);
+    const langCode = currentLanguage.split('-')[0];
+    utterance.lang = langCode;
+
+    utterance.onstart = () => {
+      setIsSpeaking(true);
+      setError(null);
+    };
+
+    utterance.onend = () => {
+      setIsSpeaking(false);
+    };
+
+    utterance.onerror = (event) => {
+       if (event.error === 'interrupted' || event.error === 'canceled') {
+        console.log(`Price prediction speech (lang: ${langCode}) was intentionally stopped.`);
+        setIsSpeaking(false);
+        return;
+      }
+      console.error(`Price prediction speech error (lang: ${langCode}):`, event.error, event);
+      setError(translate('speechError', "Sorry, I couldn't read this aloud."));
+      setIsSpeaking(false);
+    };
+    
+    window.speechSynthesis.speak(utterance);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (typeof window !== "undefined" && window.speechSynthesis && window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
+        setIsSpeaking(false);
+      }
+    };
+  }, []);
 
   return (
     <Card className="shadow-lg">
@@ -140,6 +195,15 @@ export function PricePredictor() {
                 <p><strong>{translate('suggestedRangeLabel', 'Suggested Range:')}</strong> <span className="font-semibold">{prediction.suggestedPriceRange}</span></p>
                 <p><strong>{translate('reasoningLabel', 'Reasoning:')}</strong> {prediction.reasoning}</p>
                 {prediction.confidence && <p><strong>{translate('confidenceLabel', 'Confidence:')}</strong> {prediction.confidence}</p>}
+                 <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleReadAloudPrediction}
+                    className="mt-3 w-full"
+                >
+                    <Volume2 className="mr-2 h-4 w-4" /> 
+                    {isSpeaking ? translate('stopReading', 'Stop Reading') : translate('readAloud', 'Read Aloud')}
+                </Button>
             </CardContent>
           </Card>
         )}
@@ -147,4 +211,3 @@ export function PricePredictor() {
     </Card>
   );
 }
-
