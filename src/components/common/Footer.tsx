@@ -1,7 +1,9 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { APP_NAME } from "@/lib/constants";
 
 export function Footer() {
   const { translate } = useLanguage();
@@ -11,18 +13,20 @@ export function Footer() {
     setIsClient(true);
   }, []);
 
-  // Text that might be translated.
-  // For the initial server render and the first client render (before useEffect runs),
-  // we'll use the default English text to ensure consistency.
-  const textToShow = isClient
-    ? translate('connectingFarmers', 'Connecting Farmers and Customers Directly.')
-    : 'Connecting Farmers and Customers Directly.';
+  const currentYear = new Date().getFullYear();
+  
+  // Default to non-translated or base values for server and initial client render
+  const appNameText = isClient ? translate('appName', APP_NAME) : APP_NAME;
+  const allRightsReservedText = isClient ? translate('allRightsReserved', 'All rights reserved.') : 'All rights reserved.';
+  
+  const footerText = `© ${currentYear} ${appNameText}. ${allRightsReservedText}`;
 
   return (
     <footer className="border-t py-6 md:py-8">
       <div className="container flex flex-col items-center justify-center gap-4 md:flex-row md:justify-center">
-        <p className="text-center text-sm text-muted-foreground">
-          {textToShow}
+        {/* Using class names observed from the server-rendered part of the hydration error diff */}
+        <p className="text-center text-sm leading-loose text-muted-foreground md:text-left">
+          {footerText}
         </p>
       </div>
     </footer>
