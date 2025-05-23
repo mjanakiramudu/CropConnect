@@ -9,17 +9,20 @@ export function Footer() {
   const { translate } = useLanguage();
   const [isClient, setIsClient] = useState(false);
 
+  // Initial text for server-render and first client-render pass.
+  // Using a fixed year string or a very stable default for the server can also help if Date() causes issues.
+  // For consistency, let's calculate year and use defaults here.
+  const defaultYear = new Date().getFullYear();
+  const defaultAppName = APP_NAME; // Use the constant directly for default
+  const defaultAllRightsReserved = "All rights reserved."; // Default English text
+
+  const initialText = `© ${defaultYear} ${defaultAppName}. ${defaultAllRightsReserved}`;
+
+  const [footerText, setFooterText] = useState(initialText);
+
   useEffect(() => {
     setIsClient(true);
   }, []);
-
-  // Initial text for server-render and first client-render pass
-  // Using a fixed year string or a very stable default for the server can also help if Date() causes issues.
-  // However, for consistency, let's calculate year and use defaults here.
-  const initialYear = new Date().getFullYear(); // This will be consistent if server/client run "simultaneously"
-  const initialText = `© ${initialYear} ${APP_NAME}. All rights reserved.`;
-
-  const [footerText, setFooterText] = useState(initialText);
 
   useEffect(() => {
     if (isClient) {
@@ -34,7 +37,7 @@ export function Footer() {
   return (
     <footer className="border-t py-6 md:py-8">
       <div className="container flex flex-col items-center justify-center gap-4 md:flex-row md:justify-center">
-        {/* These class names match what the server was likely rendering previously with the copyright */}
+        {/* Class names based on previous error diffs suggesting server output */}
         <p className="text-center text-sm leading-loose text-muted-foreground md:text-left">
           {footerText}
         </p>
