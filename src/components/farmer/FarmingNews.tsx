@@ -17,12 +17,18 @@ export function FarmingNews() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [news, setNews] = useState<NewsItem[] | null>(null);
-  const [speakingArticle, setSpeakingArticle] = useState<string | null>(null); // Holds the title of the article being spoken
+  const [speakingArticle, setSpeakingArticle] = useState<string | null>(null);
 
   const farmerLocation = user?.location;
-  const region = farmerLocation || "India"; // Default to India if user location not set
+  const region = farmerLocation || "India"; 
 
   const handleFetchNews = useCallback(async () => {
+    if (!user) { // Don't fetch if user is logged out
+      setNews(null);
+      setError(null);
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     setError(null);
     setNews(null);
@@ -33,13 +39,15 @@ export function FarmingNews() {
 
     const result = await fetchFarmingNews({ region, language: currentLanguage, count: 3 });
 
-    if ("error" in result) {
+    if (result && "error" in result) {
       setError(result.error);
-    } else {
+    } else if (result && result.newsItems) {
       setNews(result.newsItems);
+    } else {
+      setError(translate('newsFetchErrorGeneric', 'Failed to fetch news. Please try again.'));
     }
     setIsLoading(false);
-  }, [currentLanguage, region]); 
+  }, [currentLanguage, region, user, translate]); 
   
   useEffect(() => {
     handleFetchNews();
@@ -52,15 +60,13 @@ export function FarmingNews() {
       return;
     }
 
-    // If this article is already speaking, stop it.
     if (speakingArticle === articleTitle && window.speechSynthesis.speaking) {
-      window.speechSynthesis.cancel(); // This will trigger onend or onerror for the current utterance.
-      // The onend/onerror handler should setSpeakingArticle(null)
+      window.speechSynthesis.cancel(); 
+      // onerror will handle setSpeakingArticle(null) if speech was 'interrupted' or 'canceled'
       return;
     }
 
-    // If any other article is speaking, or if no article is speaking, stop current and start new.
-    window.speechSynthesis.cancel(); // Stop any current speech.
+    window.speechSynthesis.cancel(); 
 
     const fullText = `${articleTitle}. ${textToSpeak}`;
     const utterance = new SpeechSynthesisUtterance(fullText);
@@ -70,33 +76,25 @@ export function FarmingNews() {
 
     utterance.onstart = () => {
       setSpeakingArticle(articleTitle);
-      setError(null); // Clear previous errors when new speech starts
+      setError(null); 
     };
 
     utterance.onend = () => {
-      // Ensure this callback only clears state if it was this utterance that ended naturally.
-      // If cancel() was called, speakingArticle might already be null or different.
       if (speakingArticle === articleTitle) {
         setSpeakingArticle(null);
       }
     };
 
     utterance.onerror = (event) => {
-      // If the error is due to interruption (e.g., by clicking "Stop Reading" or starting a new article),
-      // we don't want to show a user-facing error.
-      if (event.error === 'interrupted') {
-        console.log(`Speech for "${articleTitle}" (lang: ${langCode}) was intentionally interrupted.`);
-        // State is typically cleared by the action that caused the interruption (e.g. new onstart, or explicit cancel).
-        // We ensure speakingArticle is null if it was the one being interrupted.
+      const eventError = event.error as string;
+      if (eventError === 'interrupted' || eventError === 'canceled') {
+        console.log(`Speech for "${articleTitle}" (lang: ${langCode}) was intentionally stopped.`);
         if (speakingArticle === articleTitle) {
             setSpeakingArticle(null);
         }
         return; 
       }
-
-      // For other types of errors:
-      console.error(`Speech synthesis error for "${articleTitle}" (lang: ${langCode}):`, event.error, event);
-      // Only set error and clear speaking state if this error pertains to the article we *thought* was speaking.
+      console.error(`Speech synthesis error for "${articleTitle}" (lang: ${langCode}):`, eventError, event);
       if (speakingArticle === articleTitle) {
         setError(translate('speechError', `Sorry, I couldn't read "${articleTitle}" aloud.`));
         setSpeakingArticle(null);
@@ -124,7 +122,7 @@ export function FarmingNews() {
           {translate('farmingNewsTitle', 'Farming News')}
         </CardTitle>
         <CardDescription>
-          {translate('farmingNewsDesc', `Latest agricultural updates for ${region} in ${currentLanguage}.`)}
+          {translate('farmingNewsDesc', `Latest agricultural updates for ${region} in ${translate(currentLanguage, currentLanguage)}.`)}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

@@ -20,8 +20,8 @@ interface ProductContextType {
 
 const ProductContext = createContext<ProductContextType | undefined>(undefined);
 
-const PRODUCTS_STORAGE_KEY = "cropConnectProducts"; // Updated key
-const RATINGS_STORAGE_KEY = "cropConnectRatings"; // Updated key
+const PRODUCTS_STORAGE_KEY = "cropConnectProducts"; 
+const RATINGS_STORAGE_KEY = "cropConnectRatings"; 
 
 
 export const ProductProvider = ({ children }: { children: ReactNode }) => {
@@ -138,34 +138,35 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const updateProductQuantity = (productId: string, quantityChange: number): boolean => {
-    let success = false;
+    const productToUpdate = products.find(p => p.id === productId);
+
+    if (!productToUpdate) {
+        safeToast({ title: "Product Error", description: "Product not found for quantity update.", variant: "destructive" });
+        return false;
+    }
+
+    const newQuantity = productToUpdate.quantity + quantityChange; // quantityChange is negative for deduction
+
+    if (newQuantity < 0) {
+        safeToast({
+            title: "Stock Issue",
+            description: `Not enough stock for ${productToUpdate.name}. Requested deduction makes stock negative. Available: ${productToUpdate.quantity}, Change: ${quantityChange}.`,
+            variant: "destructive"
+        });
+        return false;
+    }
+
+    // If checks pass, then update the state
     setProducts(prevProducts => {
-      const productIndex = prevProducts.findIndex(p => p.id === productId);
-      if (productIndex === -1) {
-        safeToast({ title: "Error", description: "Product not found for quantity update.", variant: "destructive" });
-        success = false;
-        return prevProducts;
-      }
-      
-      const productToUpdate = prevProducts[productIndex];
-      const newQuantity = productToUpdate.quantity + quantityChange;
-
-      if (newQuantity < 0) {
-        safeToast({ title: "Error", description: `Cannot reduce quantity for ${productToUpdate.name} below zero.`, variant: "destructive" });
-        success = false;
-        return prevProducts;
-      }
-
-      const updatedProduct = { ...productToUpdate, quantity: newQuantity };
-      const updatedProducts = [...prevProducts];
-      updatedProducts[productIndex] = updatedProduct;
-      
-      persistProducts(updatedProducts);
-      success = true;
-      return updatedProducts;
+        const updatedProductsList = prevProducts.map(p =>
+            p.id === productId ? { ...p, quantity: newQuantity } : p
+        );
+        persistProducts(updatedProductsList);
+        return updatedProductsList;
     });
-    return success;
+    return true;
   };
+
 
   const updateProductRating = useCallback((productId: string) => {
     const storedRatingsString = localStorage.getItem(RATINGS_STORAGE_KEY);
@@ -184,7 +185,7 @@ export const ProductProvider = ({ children }: { children: ReactNode }) => {
   }, [calculateAverageRatings]);
 
 
-  const getProductById = (id: string) => {
+  const getProductById = (id: string): Product | undefined => {
     return products.find(p => p.id === id);
   };
 

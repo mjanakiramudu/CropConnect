@@ -16,13 +16,13 @@ import { useRouter } from "next/navigation";
 import type { SaleNotification, Order, OrderItem, CartItem } from "@/lib/types";
 import { useState } from "react";
 
-const CUSTOMER_ORDERS_STORAGE_KEY_PREFIX = "cropConnectCustomerOrders_"; // Updated key
-const FARMER_NOTIFICATIONS_STORAGE_KEY_PREFIX = "cropConnectFarmerNotifications_"; // Updated key
+const CUSTOMER_ORDERS_STORAGE_KEY_PREFIX = "cropConnectCustomerOrders_";
+const FARMER_NOTIFICATIONS_STORAGE_KEY_PREFIX = "cropConnectFarmerNotifications_";
 
 export default function CheckoutPage() {
   const { translate } = useLanguage();
   const { cart, getCartTotal, clearCart, loadingCart } = useCart();
-  const { updateProductQuantity } = useProducts();
+  const { updateProductQuantity, getProductById } = useProducts(); // Added getProductById
   const { user } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
@@ -62,21 +62,64 @@ export default function CheckoutPage() {
     }
     setIsProcessingOrder(true);
 
-    let allQuantitiesUpdated = true;
+    // Step 1: Pre-check all item quantities
+    let canFulfillOrder = true;
     for (const item of cart) {
-      const success = updateProductQuantity(item.id, -item.cartQuantity); 
-      if (!success) {
-        allQuantitiesUpdated = false;
+      const currentProductState = getProductById(item.id);
+
+      if (!currentProductState) {
         safeToast({
           title: "Order Error",
-          description: `Could not update stock for ${item.name}. Order cancelled. Please try again.`,
+          description: `Product ${item.name} is no longer available. Order cancelled. Please update your cart.`,
           variant: "destructive",
         });
-        break; 
+        canFulfillOrder = false;
+        break;
+      }
+
+      if (currentProductState.quantity < item.cartQuantity) {
+        safeToast({
+          title: "Stock Issue",
+          description: `Not enough stock for ${item.name}. Available: ${currentProductState.quantity}, In Cart: ${item.cartQuantity}. Please update your cart.`,
+          variant: "destructive",
+        });
+        canFulfillOrder = false;
+        break;
       }
     }
 
-    if (!allQuantitiesUpdated) {
+    if (!canFulfillOrder) {
+      setIsProcessingOrder(false);
+      router.push('/customer/cart'); // Redirect to cart to adjust quantities
+      return;
+    }
+
+    // Step 2: If all checks pass, then attempt to update quantities
+    let allQuantitiesSuccessfullyUpdated = true;
+    const successfullyUpdatedProductIds: string[] = [];
+
+    for (const item of cart) {
+      const success = updateProductQuantity(item.id, -item.cartQuantity); 
+      if (!success) {
+        allQuantitiesSuccessfullyUpdated = false;
+        safeToast({
+          title: "Order Processing Error",
+          description: `A problem occurred updating stock for ${item.name}. Order cancelled.`,
+          variant: "destructive",
+        });
+        // Attempt to roll back quantities for items already processed in this order attempt
+        for (const updatedId of successfullyUpdatedProductIds) {
+            const originalCartItem = cart.find(ci => ci.id === updatedId);
+            if (originalCartItem) {
+                 updateProductQuantity(updatedId, originalCartItem.cartQuantity); // Add back
+            }
+        }
+        break; 
+      }
+      successfullyUpdatedProductIds.push(item.id);
+    }
+
+    if (!allQuantitiesSuccessfullyUpdated) {
       setIsProcessingOrder(false);
       return;
     }
@@ -108,7 +151,6 @@ export default function CheckoutPage() {
       createdAt: new Date().toISOString(),
     };
     saveOrderForCustomer(user.id, newOrder);
-
 
     const notificationsByFarmer: Record<string, SaleNotification> = {};
     cart.forEach(item => {
