@@ -22,6 +22,8 @@ import {
 } from "@/components/ui/table";
 
 const COLORS_PIE = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82Ca9D'];
+const FARMER_NOTIFICATIONS_STORAGE_KEY_PREFIX = "cropConnectFarmerNotifications_";
+
 
 interface AggregatedProductSale {
   productName: string;
@@ -50,7 +52,7 @@ export default function SalesAnalyticsPage() {
   useEffect(() => {
     if (user && user.role === 'farmer') {
       setLoading(true);
-      const farmerNotificationStoreKey = `farmLinkFarmerNotifications_${user.id}`;
+      const farmerNotificationStoreKey = `${FARMER_NOTIFICATIONS_STORAGE_KEY_PREFIX}${user.id}`;
       const storedNotificationsString = localStorage.getItem(farmerNotificationStoreKey);
       if (storedNotificationsString) {
         try {
@@ -60,6 +62,8 @@ export default function SalesAnalyticsPage() {
           console.error("Error parsing farmer notifications for analytics", e);
           setNotifications([]);
         }
+      } else {
+        setNotifications([]); // Ensure notifications is an empty array if no data
       }
       setLoading(false);
     } else {
@@ -106,7 +110,7 @@ export default function SalesAnalyticsPage() {
   const uniqueProductsSold = useMemo(() => aggregatedSales.length, [aggregatedSales]);
 
   const handleFetchInsights = async () => {
-    if (aggregatedSales.length === 0) {
+    if (notifications.length === 0) { // Check notifications directly
         setInsightsError(translate('noSalesDataForInsights', "No sales data available to generate insights."));
         return;
     }
@@ -279,7 +283,7 @@ export default function SalesAnalyticsPage() {
                                 <YAxis />
                                 <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} />
                                 <Legend />
-                                <Bar dataKey="totalRevenue" name={translate('revenue', 'Revenue')} fill="var(--color-chart-1)" radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="totalRevenue" name={translate('revenue', 'Revenue')} fill="var(--chart-1)" radius={[4, 4, 0, 0]} />
                             </BarChart>
                         </ResponsiveContainer>
                     </CardContent>
@@ -334,7 +338,7 @@ export default function SalesAnalyticsPage() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Button onClick={handleFetchInsights} disabled={loadingInsights || aggregatedSales.length === 0} className="w-full sm:w-auto mb-4">
+                    <Button onClick={handleFetchInsights} disabled={loadingInsights || notifications.length === 0} className="w-full sm:w-auto mb-4">
                         {loadingInsights && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         {translate('getAIInsightsButton', 'Generate AI Insights')}
                     </Button>
@@ -420,3 +424,5 @@ export default function SalesAnalyticsPage() {
     </div>
   );
 }
+
+    
