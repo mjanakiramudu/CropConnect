@@ -13,18 +13,28 @@ export function Footer() {
     setIsClient(true);
   }, []);
 
-  const currentYear = new Date().getFullYear();
-  
-  // Default to non-translated or base values for server and initial client render
-  const appNameText = isClient ? translate('appName', APP_NAME) : APP_NAME;
-  const allRightsReservedText = isClient ? translate('allRightsReserved', 'All rights reserved.') : 'All rights reserved.';
-  
-  const footerText = `© ${currentYear} ${appNameText}. ${allRightsReservedText}`;
+  // Initial text for server-render and first client-render pass
+  // Using a fixed year string or a very stable default for the server can also help if Date() causes issues.
+  // However, for consistency, let's calculate year and use defaults here.
+  const initialYear = new Date().getFullYear(); // This will be consistent if server/client run "simultaneously"
+  const initialText = `© ${initialYear} ${APP_NAME}. All rights reserved.`;
+
+  const [footerText, setFooterText] = useState(initialText);
+
+  useEffect(() => {
+    if (isClient) {
+      // This runs only on the client after hydration
+      const currentYear = new Date().getFullYear();
+      const appNameText = translate('appName', APP_NAME);
+      const allRightsReservedText = translate('allRightsReserved', 'All rights reserved.');
+      setFooterText(`© ${currentYear} ${appNameText}. ${allRightsReservedText}`);
+    }
+  }, [isClient, translate]);
 
   return (
     <footer className="border-t py-6 md:py-8">
       <div className="container flex flex-col items-center justify-center gap-4 md:flex-row md:justify-center">
-        {/* Using class names observed from the server-rendered part of the hydration error diff */}
+        {/* These class names match what the server was likely rendering previously with the copyright */}
         <p className="text-center text-sm leading-loose text-muted-foreground md:text-left">
           {footerText}
         </p>
