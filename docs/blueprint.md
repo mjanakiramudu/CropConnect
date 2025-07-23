@@ -1,4 +1,4 @@
-# **App Name**: FarmLink
+# **App Name**: CropConnect
 
 ## Core Features:
 
