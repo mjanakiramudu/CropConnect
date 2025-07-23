@@ -1,0 +1,93 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+skinparam usecase {
+  BackgroundColor #FDF6E3
+  BorderColor Black
+  ArrowColor #586e75
+  FontColor Black
+}
+
+actor RegisteredUser
+actor Admin
+
+actor Farmer
+actor Customer
+
+Farmer --|> RegisteredUser
+Customer --|> RegisteredUser
+
+rectangle "CropConnect Platform" {
+
+  package "Common Use Cases" {
+    usecase "Register" as UC1
+    usecase "Login" as UC2
+
+    RegisteredUser -- UC1
+    RegisteredUser -- UC2
+  }
+
+  package "Farmer Use Cases" {
+    usecase "Add Product" as UC3
+    usecase "Edit Product" as UC4
+    usecase "Manage Inventory" as UC5
+    usecase "View Orders" as UC6
+    usecase "Update Order Status" as UC7
+    usecase "View Sales Analytics" as UC8
+    usecase "Get Price Suggestions" as UC9
+    usecase "Access Farming News" as UC10
+    usecase "Check Weather Updates" as UC11
+
+    Farmer -- UC3
+    Farmer -- UC4
+    Farmer -- UC5
+    Farmer -- UC6
+    Farmer -- UC7
+    Farmer -- UC8
+    Farmer -- UC9
+    Farmer -- UC10
+    Farmer -- UC11
+  }
+
+  package "Customer Use Cases" {
+    usecase "Browse Products" as UC12
+    usecase "Search Products" as UC13
+    usecase "Filter Products" as UC14
+    usecase "View Product Details" as UC15
+    usecase "Add to Cart" as UC16
+    usecase "View Cart" as UC17
+    usecase "Edit Cart" as UC18
+    usecase "Checkout" as UC19
+    usecase "Make Payment" as UC20
+    usecase "View Order History" as UC21
+    usecase "Track Order" as UC22
+
+    Customer -- UC12
+    Customer -- UC13
+    Customer -- UC14
+    Customer -- UC15
+    Customer -- UC16
+    Customer -- UC17
+    Customer -- UC18
+    Customer -- UC19
+    Customer -- UC21
+    Customer -- UC22
+
+    UC12 .u.> UC13 : <<include>>
+    UC12 .d.> UC14 : <<extend>>
+    UC19 --> UC20 : <<include>>
+  }
+
+  package "Admin Use Cases" {
+    usecase "Manage Users" as UC23
+    usecase "Manage Products" as UC24
+    usecase "Manage Categories" as UC25
+    usecase "View System Analytics" as UC26
+
+    Admin -- UC23
+    Admin -- UC24
+    Admin -- UC25
+    Admin -- UC26
+  }
+}
+@enduml

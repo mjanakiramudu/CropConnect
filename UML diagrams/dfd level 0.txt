@@ -1,0 +1,20 @@
+@startuml
+title CropConnect - Level 0 DFD (Context Diagram)
+
+actor "Farmer" as Farmer
+actor "Customer" as Customer
+rectangle "CropConnect System [0]" as System
+
+rectangle "External APIs\n(Weather, Market)" as APIs
+rectangle "Payment Gateway" as Payment
+
+Farmer --> System : Register/Login\nAdd Products\nView Analytics
+Customer --> System : Browse Products\nOrder/Pay
+System --> Farmer : Status, Analytics, Notifications
+System --> Customer : Product Listings\nOrder Status
+
+System --> APIs : Fetch Weather/Market Data
+System --> Payment : Payment Request
+Payment --> System : Payment Status
+
+@enduml

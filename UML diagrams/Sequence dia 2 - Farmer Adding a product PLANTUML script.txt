@@ -1,0 +1,55 @@
+@startuml
+skinparam ParticipantFontSize 12
+skinparam ParticipantFontColor #333333
+skinparam BoxBorderColor #333333
+skinparam BoxFontColor #333333
+skinparam SequenceArrowColor #333333
+skinparam SequenceMessageAlign center
+skinparam SequenceLineColor #333333
+
+actor Farmer as F
+participant "Farmer UI" as UI
+participant "Frontend Controller" as FE
+participant "Backend API" as BE
+database "Database (PostgreSQL)" as DB
+
+F -> UI : Initiates Add Product
+activate UI
+
+UI -> FE : Enters Product Details
+activate FE
+
+FE -> BE : POST /api/products (Product Data, including Farmer ID from session)
+activate BE
+
+BE -> DB : Validate Product Data
+activate DB
+DB --> BE : Validation Result
+deactivate DB
+
+alt if validation successful
+  BE -> DB : Create New Product Record
+  activate DB
+  DB --> BE : Product ID
+  deactivate DB
+
+  BE -> FE : Product Added Success Confirmation (Product ID)
+  deactivate BE
+
+  FE -> UI : Display Success Message and New Product
+  deactivate FE
+
+  UI -> F : Show Confirmation
+  deactivate UI
+else if validation failed
+  BE -> FE : Validation Error Message
+  deactivate BE
+
+  FE -> UI : Display Validation Error
+  deactivate FE
+
+  UI -> F : Show Error Message
+  deactivate UI
+end
+
+@enduml

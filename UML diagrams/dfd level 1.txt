@@ -1,0 +1,69 @@
+@startuml
+skinparam defaultFlowchartBorderColor #333333
+skinparam defaultFlowchartFontColor #333333
+skinparam rectangleBorderColor #333333
+skinparam databaseBorderColor #333333
+skinparam hexagonBorderColor #333333
+
+' Define Processes (represented as rounded rectangles or circles)
+circle "1.0\nUser\nManagement" as ProcUser
+circle "2.0\nProduct\nManagement" as ProcProduct
+circle "3.0\nOrdering &\nCart Mgmt" as ProcOrder
+circle "4.0\nPayment\nProcessing" as ProcPayment
+circle "5.0\nAnalytics &\nAI Services" as ProcAI
+
+' Define Data Stores (represented as database cylinders)
+database "D1 User Data" as DSUser
+database "D2 Product Data" as DSProduct
+database "D3 Order Data" as DSOrder
+database "D4 Transaction Data" as DSTransaction
+
+' Define External Entities (represented as rectangles)
+rectangle Farmer as Farmer
+rectangle Customer as Customer
+rectangle "Payment Gateway" as PaymentGateway
+rectangle "External AI\nServices" as ExternalAI
+
+' Define Data Flows
+
+' User Management Flows
+Farmer --> ProcUser : Reg/Login Data, Profile Updates
+Customer --> ProcUser : Reg/Login Data, Profile Updates
+ProcUser --> DSUser : Write User Data
+DSUser --> ProcUser : Read User Data
+ProcUser --> ProcProduct : Authenticated User Info, Role
+ProcUser --> ProcOrder : Authenticated User Info, Role
+ProcUser --> ProcAI : Authenticated User Info, Role
+
+' Product Management Flows
+Farmer --> ProcProduct : Add/Edit Product Data
+Customer --> ProcProduct : Product Search/Filter Criteria
+ProcProduct --> DSProduct : Write Product Data
+DSProduct --> ProcProduct : Read Product Data, Search Results
+ProcProduct --> Customer : Product Listings, Search Results, Details
+
+' Ordering and Cart Management Flows
+Customer --> ProcOrder : Add to Cart, Cart Updates, Checkout Req
+ProcOrder --> DSOrder : Write Order Data, Read Cart Data
+DSOrder --> ProcOrder : Order Data, Cart Data
+ProcOrder --> DSProduct : Inventory Check/Update
+DSProduct --> ProcOrder : Inventory Status
+ProcOrder --> ProcPayment : Payment Initiation Data
+ProcOrder --> Farmer : New Order Notification, Details
+Farmer --> ProcOrder : Update Order Status
+
+' Payment Processing Flows
+ProcPayment --> PaymentGateway : Payment Request
+PaymentGateway --> ProcPayment : Payment Confirmation/Status
+ProcPayment --> ProcOrder : Payment Result
+ProcPayment --> DSTransaction : Write Transaction Data
+
+' Analytics and AI Services Flows
+Farmer --> ProcAI : Analytics/AI Requests
+ProcAI --> DSProduct : Read Product Data for AI/Analytics
+ProcAI --> DSOrder : Read Sales Data for AI/Analytics
+ProcAI --> ExternalAI : Data for Pred/Analysis
+ExternalAI --> ProcAI : Prediction/Analysis Results
+ProcAI --> Farmer : Analytics Reports, Price Predictions
+
+@enduml

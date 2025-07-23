@@ -1,0 +1,45 @@
+@startuml
+' Set skin parameters for a cleaner look
+skinparam style strict
+skinparam defaultFlowchartBorderColor #333333
+skinparam defaultFlowchartFontColor #333333
+skinparam rectangleBorderColor #333333
+skinparam databaseBorderColor #333333
+
+' Define Nodes (Components)
+rectangle "Customer UI" as CustomerUI
+rectangle "Farmer UI" as FarmerUI
+rectangle "Frontend Application (React)" as Frontend
+rectangle "Backend API (Node.js/Express)" as Backend
+database "Database (PostgreSQL)" as Database
+rectangle "Authentication Service (Firebase Auth)" as Auth
+rectangle "AI Service (Genkit/Models)" as AI
+rectangle "Payment Gateway" as PaymentGateway
+rectangle "External Data Sources" as ExternalData
+
+' Define Flows (Arrows)
+CustomerUI --> Frontend : User Interaction
+FarmerUI --> Frontend : User Interaction
+
+Frontend --> Backend : API Requests / Data (HTTP)
+
+Backend --> Database : Data Read/Write (SQL)
+Database --> Backend : Data
+
+Backend --> Auth : Authenticate / Authorize User
+Auth --> Backend : Auth Status / User Info
+
+Backend --> AI : Request AI Service (Data)
+AI --> Backend : AI Results (Prediction, Analytics)
+
+Backend --> PaymentGateway : Initiate Payment Transaction
+PaymentGateway --> Backend : Payment Confirmation / Status
+
+ExternalData --> Backend : Fetch Data (e.g., Weather, Market Prices)
+
+Backend --> Frontend : API Responses / Data
+
+Frontend --> CustomerUI : Display Information / Updates
+Frontend --> FarmerUI : Display Information / Updates
+
+@enduml

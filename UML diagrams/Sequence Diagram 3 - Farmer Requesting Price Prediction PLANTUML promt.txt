@@ -1,0 +1,39 @@
+@startuml
+skinparam ParticipantFontSize 12
+skinparam ParticipantFontColor #333333
+skinparam BoxBorderColor #333333
+skinparam BoxFontColor #333333
+skinparam SequenceArrowColor #333333
+skinparam SequenceMessageAlign center
+skinparam SequenceLineColor #333333
+
+actor Farmer as F
+participant "Farmer UI" as UI
+participant "Frontend Controller" as FE
+participant "Backend API" as BE
+participant "AI Service (Genkit/Model)" as AI
+
+F -> UI : Requests Price Prediction for Product
+activate UI
+
+UI -> FE : Send Request for Price Prediction (Product ID, Location)
+activate FE
+
+FE -> BE : POST /api/ai/price-prediction (Product ID, Location, Farmer ID from session)
+activate BE
+
+BE -> AI : Request Price Prediction (Relevant Data)
+activate AI
+AI --> BE : Price Prediction Result (Suggested Price, Confidence, Reasoning)
+deactivate AI
+
+BE -> FE : Price Prediction Data
+deactivate BE
+
+FE -> UI : Display Price Prediction Data
+deactivate FE
+
+UI -> F : Show Price Prediction Result
+deactivate UI
+
+@enduml

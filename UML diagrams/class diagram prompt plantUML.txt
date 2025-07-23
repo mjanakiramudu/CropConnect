@@ -1,0 +1,233 @@
+@startuml
+' Set skin parameters for a more modern look
+skinparam classAttributeIconSize 0
+skinparam classFontSize 12
+skinparam classArrowColor #333333
+skinparam classBorderColor #333333
+skinparam classFontColor #333333
+skinparam stereotypeFontSize 10
+skinparam stereotypeFontColor #333333
+
+' Define Packages (Optional, for larger diagrams)
+' package "User Management" {
+'   abstract User
+'   class Farmer
+'   class Customer
+'   class Admin
+' }
+
+' package "Product Management" {
+'   class Product
+'   class ProductCategory
+' }
+
+' package "Ordering" {
+'   class Order
+'   class OrderItem
+'   class Cart
+'   class CartItem
+' }
+
+' package "Supporting Entities" {
+'   class Address
+'   class Payment
+' }
+
+' Define Classes
+abstract class User {
+  + userId: UUID
+  + email: String
+  + passwordHash: String
+  + registrationDate: DateTime
+  + lastLoginDate: DateTime
+  + role: UserRole
+  + isActive: Boolean
+  --
+  + login(email, password)
+  + logout()
+  + updateProfile(profileData)
+  + changePassword(newPassword)
+}
+
+class Farmer {
+  + farmName: String
+  + contactNumber: String
+  + description: Text
+  + profilePicture: String
+  + bankDetails: String {private}
+  --
+  + addProduct(productDetails)
+  + updateProduct(productId, productDetails)
+  + removeProduct(productId)
+  + viewOrders()
+  + updateOrderStatus(orderId, newStatus)
+  + viewSalesAnalytics()
+  + requestPricePrediction(productId, location)
+  + getFarmingNews()
+  + getWeatherUpdates(location)
+}
+
+class Customer {
+  + firstName: String
+  + lastName: String
+  + contactNumber: String
+  --
+  + browseProducts(filters, sortCriteria)
+  + searchProducts(keywords)
+  + viewProductDetails(productId)
+  + addToCart(productId, quantity)
+  + viewCart()
+  + updateCartItemQuantity(cartItemId, newQuantity)
+  + removeCartItem(cartItemId)
+  + checkout(shippingAddress, paymentMethod)
+  + viewOrderHistory()
+  + trackOrder(orderId)
+}
+
+class Admin {
+  + adminLevel: Integer
+  --
+  + manageUsers()
+  + manageProducts()
+  + viewSystemAnalytics()
+  + manageCategories()
+}
+
+class Product {
+  + productId: UUID
+  + name: String
+  + description: Text
+  + unitOfMeasurement: String
+  + pricePerUnit: Decimal
+  + availableQuantity: Decimal
+  + imageUrl: String
+  + isAvailable: Boolean
+  + creationDate: DateTime
+  + lastUpdateDate: DateTime
+  --
+  + updateQuantity(change)
+  + calculatePrice(quantity)
+}
+
+class Order {
+  + orderId: UUID
+  + orderDate: DateTime
+  + totalAmount: Decimal
+  + orderStatus: OrderStatus
+  + paymentStatus: PaymentStatus
+  --
+  + calculateTotal()
+  + updateStatus(newStatus)
+  + processPayment()
+}
+
+class OrderItem {
+  + orderItemId: UUID
+  + quantity: Decimal
+  + pricePerUnit: Decimal
+  + lineItemTotal: Decimal
+  --
+  + calculateLineItemTotal()
+}
+
+class Cart {
+  + cartId: UUID
+  + creationDate: DateTime
+  + lastUpdateDate: DateTime
+  --
+  + addItem(productId, quantity)
+  + removeItem(cartItemId)
+  + updateItemQuantity(cartItemId, newQuantity)
+  + clearCart()
+  + convertToOrder()
+}
+
+class CartItem {
+  + cartItemId: UUID
+  + quantity: Decimal
+  + additionDate: DateTime
+}
+
+class Address {
+  + addressId: UUID
+  + streetAddress: String
+  + city: String
+  + state: String
+  + zipCode: String
+  + country: String
+}
+
+class Payment {
+  + paymentId: UUID
+  + paymentMethod: String
+  + transactionId: String
+  + amount: Decimal
+  + paymentDate: DateTime
+  + paymentStatus: PaymentStatus
+}
+
+class ProductCategory {
+  + categoryId: UUID
+  + name: String
+  + description: Text
+}
+
+' Define Enums (represented as classes with stereotype enum)
+class UserRole << (E,lightblue) Enum >> {
+  Farmer
+  Customer
+  Admin
+}
+
+class OrderStatus << (E,lightblue) Enum >> {
+  Pending
+  Processing
+  Shipped
+  Delivered
+  Cancelled
+}
+
+class PaymentStatus << (E,lightblue) Enum >> {
+  Pending
+  Completed
+  Failed
+  Refunded
+}
+
+
+' Define Relationships
+
+' Inheritance
+User <|-- Farmer
+User <|-- Customer
+User <|-- Admin
+
+' Associations
+Farmer "1" -- "*" Product : lists >
+Customer "1" -- "*" Order : places >
+Order "1" -- "1" Payment : includes >
+Product "*" -- "1" ProductCategory : belongs to >
+Farmer "1" -- "1" Address : farm location >
+Customer "1" -- "*" Address : delivery addresses >
+Order "1" -- "1" Address : shipping address >
+
+' Composition (filled diamond) - CartItems are part of a Cart
+Cart "1" *-- "*" CartItem : contains >
+
+' Composition (filled diamond) - OrderItems are part of an Order
+Order "1" *-- "*" OrderItem : includes >
+
+' Associations with OrderItem
+OrderItem "*" -- "1" Product : refers to >
+OrderItem "*" -- "1" Farmer : from >
+
+' Association for CartItem to Product
+CartItem "*" -- "1" Product : refers to >
+
+' Association for Cart to Customer (Composition)
+Customer "1" *-- "1" Cart : has >
+
+' Add Notes for clarity if needed
+' note "This is a note about the User class" on class User
+
+@enduml

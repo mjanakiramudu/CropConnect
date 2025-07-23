@@ -1,0 +1,103 @@
+@startuml
+' Set skin parameters for a professional look
+skinparam ParticipantFontSize 12
+skinparam ParticipantFontColor #333333
+skinparam BoxBorderColor #333333
+skinparam BoxFontColor #333333
+skinparam SequenceArrowColor #333333
+skinparam SequenceMessageAlign center
+skinparam SequenceLineColor #333333
+
+actor Customer as C
+participant "Customer UI" as UI
+participant "Frontend Controller" as FE
+participant "Backend API" as BE
+database "Database (PostgreSQL)" as DB
+participant "Payment Gateway" as PG
+
+C -> UI : Initiates Checkout
+activate UI
+
+UI -> FE : Submit Order Details (Cart Items, Shipping Address, Payment Info)
+activate FE
+
+FE -> BE : POST /api/orders (Order Data)
+activate BE
+
+BE -> DB : Validate Product Availability and Quantity
+activate DB
+DB --> BE : Product Validation Result
+deactivate DB
+
+alt if validation successful
+  BE -> DB : Create New Order Record
+  activate DB
+  DB --> BE : Order ID
+  deactivate DB
+
+  BE -> DB : Create OrderItem Records (for each item in cart)
+  activate DB
+  DB --> BE : OrderItem IDs
+  deactivate DB
+
+  BE -> DB : Deduct Product Quantities from Inventory
+  activate DB
+  DB --> BE : Inventory Update Status
+  deactivate DB
+
+  BE -> PG : Initiate Payment Transaction (Amount, Order ID, Payment Info)
+  activate PG
+  PG --> BE : Payment Transaction Result (Success/Failure)
+  deactivate PG
+
+  alt if payment successful
+    BE -> DB : Update Order Status to "Processing"
+    activate DB
+    DB --> BE : Order Status Updated
+    deactivate DB
+
+    BE -> DB : Record Payment Details
+    activate DB
+    DB --> BE : Payment Recorded
+    deactivate DB
+
+    BE -> FE : Order Confirmation (Order ID, Summary)
+    deactivate BE
+
+    FE -> UI : Display Order Confirmation
+    deactivate FE
+
+    UI -> C : Show Order Confirmation
+    deactivate UI
+  else if payment failed
+    BE -> DB : Update Order Status to "Payment Failed"
+    activate DB
+    DB --> BE : Order Status Updated
+    deactivate DB
+
+    BE -> DB : Revert Product Quantities (optional, based on business rules)
+    activate DB
+    DB --> BE : Inventory Reverted
+    deactivate DB
+
+    BE -> FE : Payment Failure Notification
+    deactivate BE
+
+    FE -> UI : Display Payment Failure Message
+    deactivate FE
+
+    UI -> C : Show Payment Failure Message
+    deactivate UI
+  end
+else if validation failed
+  BE -> FE : Validation Error Message
+  deactivate BE
+
+  FE -> UI : Display Validation Error
+  deactivate FE
+
+  UI -> C : Show Error Message
+  deactivate UI
+end
+
+@enduml

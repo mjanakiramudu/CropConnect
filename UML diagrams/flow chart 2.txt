@@ -1,0 +1,55 @@
+@startuml
+skinparam style strict
+skinparam defaultFlowchartBorderColor #333333
+skinparam defaultFlowchartFontColor #333333
+skinparam rectangleBorderColor #333333
+skinparam databaseBorderColor #333333
+
+'== Grouping Components ==
+package "User Interfaces" {
+  rectangle "Customer UI" as CustomerUI
+  rectangle "Farmer UI" as FarmerUI
+}
+
+package "Application Layer" {
+  rectangle "Frontend Application (React)" as Frontend
+  rectangle "Backend API (Node.js/Express)" as Backend
+}
+
+package "Core Services" {
+  database "Database\n(PostgreSQL)" as Database
+  rectangle "Authentication\n(Firebase Auth)" as Auth
+  rectangle "AI Module\n(Genkit / ML Model)" as AI
+  rectangle "Payment Gateway" as PaymentGateway
+}
+
+package "External Data" {
+  rectangle "External APIs\n(Weather, Market)" as ExternalData
+}
+
+'== Flows ==
+CustomerUI --> Frontend : Interact
+FarmerUI --> Frontend : Interact
+
+Frontend --> Backend : API Requests
+
+Backend --> Database : SQL Query
+Database --> Backend : Data Response
+
+Backend --> Auth : Auth Request
+Auth --> Backend : Auth Response
+
+Backend --> AI : Predict Request
+AI --> Backend : Prediction Result
+
+Backend --> PaymentGateway : Initiate Payment
+PaymentGateway --> Backend : Payment Status
+
+Backend --> ExternalData : Fetch Market/Weather
+
+Backend --> Frontend : API Response
+
+Frontend --> CustomerUI : Display Info
+Frontend --> FarmerUI : Display Info
+
+@enduml
